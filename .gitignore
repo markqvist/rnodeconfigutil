@@ -1,3 +1,9 @@
+# Firmware and signing keys
+firmware/*.hex
+firmware/*.key
+firmware/*.counter
+eeprom/*.eeprom
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
