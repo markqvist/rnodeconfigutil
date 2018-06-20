@@ -6,6 +6,7 @@ import os.path
 import struct
 import datetime
 import time
+import math
 import imp
 
 rnode = None
@@ -61,6 +62,7 @@ class KISS():
 	CMD_ROM_READ    = chr(0x51)
 	CMD_ROM_WRITE   = chr(0x52)
 	CMD_CONF_SAVE   = chr(0x53)
+	CMD_CONF_DELETE = chr(0x54)
 
 	DETECT_REQ      = chr(0x73)
 	DETECT_RESP     = chr(0x46)
@@ -133,6 +135,7 @@ class RNode():
 		self.model = None
 		self.hw_rev = None
 		self.made = None
+		self.serialno = None
 		self.checksum = None
 		self.signature = None
 		self.signature_valid = False
@@ -265,11 +268,11 @@ class RNode():
 					time_since_last = int(time.time()*1000) - last_read_ms
 					if len(data_buffer) > 0 and time_since_last > self.timeout:
 						RNS.log(str(self)+" serial read timeout")
-			 			data_buffer = ""
-			 			in_frame = False
-			 			command = KISS.CMD_UNKNOWN
-			 			escape = False
-			 		sleep(0.08)
+						data_buffer = ""
+						in_frame = False
+						command = KISS.CMD_UNKNOWN
+						escape = False
+					sleep(0.08)
 
 		except Exception as e:
 			exit()
@@ -278,7 +281,6 @@ class RNode():
 		try:
 			self.bitrate = self.sf * ( (4.0/self.cr) / (math.pow(2,self.sf)/(self.bandwidth/1000)) ) * 1000
 			self.bitrate_kbps = round(self.bitrate/1000.0, 2)
-			RNS.log(str(self)+" On-air bitrate is now "+str(self.bitrate_kbps)+ " kbps")
 		except:
 			self.bitrate = 0
 
@@ -353,6 +355,18 @@ class RNode():
 		if written != len(kiss_command):
 			raise IOError("An IO error occurred while configuring radio state")
 
+	def setNormalMode(self):
+		kiss_command = KISS.FEND+KISS.CMD_CONF_DELETE+chr(0x00)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("An IO error occurred while configuring device mode")
+
+	def setTNCMode(self):
+		kiss_command = KISS.FEND+KISS.CMD_CONF_SAVE+chr(0x00)+KISS.FEND
+		written = self.serial.write(kiss_command)
+		if written != len(kiss_command):
+			raise IOError("An IO error occurred while configuring device mode")
+
 	def write_eeprom(self, addr, byte):
 		kiss_command = KISS.FEND+KISS.CMD_ROM_WRITE+KISS.escape(addr)+KISS.escape(byte)+KISS.FEND
 		written = self.serial.write(kiss_command)
@@ -383,7 +397,7 @@ class RNode():
 			self.product = self.eeprom[ord(ROM.ADDR_PRODUCT)]
 			self.model = self.eeprom[ord(ROM.ADDR_MODEL)]
 			self.hw_rev = self.eeprom[ord(ROM.ADDR_HW_REV)]
-			self.serial = "" + self.eeprom[ord(ROM.ADDR_SERIAL)] + self.eeprom[ord(ROM.ADDR_SERIAL)+1] + self.eeprom[ord(ROM.ADDR_SERIAL)+2] + self.eeprom[ord(ROM.ADDR_SERIAL)+3]
+			self.serialno = "" + self.eeprom[ord(ROM.ADDR_SERIAL)] + self.eeprom[ord(ROM.ADDR_SERIAL)+1] + self.eeprom[ord(ROM.ADDR_SERIAL)+2] + self.eeprom[ord(ROM.ADDR_SERIAL)+3]
 			self.made = "" + self.eeprom[ord(ROM.ADDR_MADE)] + self.eeprom[ord(ROM.ADDR_MADE)+1] + self.eeprom[ord(ROM.ADDR_MADE)+2] + self.eeprom[ord(ROM.ADDR_MADE)+3]
 			self.checksum = ""
 			for i in range(0,16):
@@ -393,7 +407,7 @@ class RNode():
 			for i in range(0,128):
 				self.signature = self.signature+self.eeprom[ord(ROM.ADDR_SIGNATURE)+i]
 
-			checksummed_info = self.product+self.model+self.hw_rev+self.serial+self.made
+			checksummed_info = self.product+self.model+self.hw_rev+self.serialno+self.made
 			digest = hashes.Hash(hashes.MD5(), backend=default_backend())
 			digest.update(checksummed_info)
 			checksum = digest.finalize()
@@ -432,9 +446,9 @@ class RNode():
 
 			if self.eeprom[ord(ROM.ADDR_CONF_OK)] == ROM.CONF_OK_BYTE:
 				self.configured = True
-				self.conf_sf = self.eeprom[ord(ROM.ADDR_CONF_SF)]
-				self.conf_cr = self.eeprom[ord(ROM.ADDR_CONF_CR)]
-				self.conf_txpower = self.eeprom[ord(ROM.ADDR_CONF_TXP)]
+				self.conf_sf = ord(self.eeprom[ord(ROM.ADDR_CONF_SF)])
+				self.conf_cr = ord(self.eeprom[ord(ROM.ADDR_CONF_CR)])
+				self.conf_txpower = ord(self.eeprom[ord(ROM.ADDR_CONF_TXP)])
 				self.conf_frequency = ord(self.eeprom[ord(ROM.ADDR_CONF_FREQ)]) << 24 | ord(self.eeprom[ord(ROM.ADDR_CONF_FREQ)+1]) << 16 | ord(self.eeprom[ord(ROM.ADDR_CONF_FREQ)+2]) << 8 | ord(self.eeprom[ord(ROM.ADDR_CONF_FREQ)+3])
 				self.conf_bandwidth = ord(self.eeprom[ord(ROM.ADDR_CONF_BW)]) << 24 | ord(self.eeprom[ord(ROM.ADDR_CONF_BW)+1]) << 16 | ord(self.eeprom[ord(ROM.ADDR_CONF_BW)+2]) << 8 | ord(self.eeprom[ord(ROM.ADDR_CONF_BW)+3])
 			else:
@@ -456,7 +470,7 @@ class RNode():
 
 
 def device_probe():
-	sleep(2)
+	sleep(2.5)
 	rnode.detect()
 	sleep(0.1)
 	if rnode.detected == True:
@@ -467,7 +481,7 @@ def device_probe():
 		raise IOError("Got invalid response while detecting device")
 
 def config_interface():
-	RNS.log("Starting configuration interface...")
+	pass
 
 if __name__ == "__main__":
 	try:
@@ -491,8 +505,10 @@ if __name__ == "__main__":
 	import serial
 
 	try:
-		parser = argparse.ArgumentParser(description="RNode Configuration and firmware utility")
+		parser = argparse.ArgumentParser(description="RNode Configuration and firmware utility. This program allows you to change various settings and startup modes of RNode. It can also flash and update the firmware, and manage device EEPROM.")
 		parser.add_argument("-i", "--info", action="store_true", help="Show device info")
+		parser.add_argument("-T", "--tnc", action="store_true", help="Switch device to TNC mode")
+		parser.add_argument("-N", "--normal", action="store_true", help="Switch device to normal mode")
 		parser.add_argument("-b", "--backup", action="store_true", help="Backup EEPROM to file")
 		parser.add_argument("-d", "--dump", action="store_true", help="Dump EEPROM to console")
 		parser.add_argument("-f", "--flash", action="store_true", help="Flash firmware and bootstrap EEPROM")
@@ -502,6 +518,11 @@ if __name__ == "__main__":
 		parser.add_argument("-p", "--public", action="store_true", help="Display public part of signing key")
 		parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help="Model code for EEPROM bootstrap")
 		parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help="Hardware revision EEPROM bootstrap")
+		parser.add_argument("--freq", action="store", metavar="Hz", type=int, default=None, help="Frequency in Hz for TNC mode")
+		parser.add_argument("--bw", action="store", metavar="Hz", type=int, default=None, help="Bandwidth in Hz for TNC mode")
+		parser.add_argument("--txp", action="store", metavar="dBm", type=int, default=None, help="TX power in dBm for TNC mode")
+		parser.add_argument("--sf", action="store", metavar="factor", type=int, default=None, help="Spreading factor for TNC mode")
+		parser.add_argument("--cr", action="store", metavar="rate", type=int, default=None, help="Coding rate for TNC mode")
 
 		parser.add_argument("port", nargs="?", default=None, help="serial port where RNode is attached", type=str)
 		args = parser.parse_args()
@@ -665,9 +686,28 @@ if __name__ == "__main__":
 					RNS.log("\tProduct code:\t\t"+RNS.hexrep(rnode.product))
 					RNS.log("\tModel code:\t\t"+RNS.hexrep(rnode.model))
 					RNS.log("\tHardware revision:\t"+RNS.hexrep(rnode.hw_rev))
-					RNS.log("\tSerial number:\t\t"+RNS.hexrep(rnode.serial))
+					RNS.log("\tSerial number:\t\t"+RNS.hexrep(rnode.serialno))
 					RNS.log("\tManufactured:\t\t"+timestring)
-					RNS.log("\tDevice signature:\t"+sigstring)
+
+					if rnode.configured:
+						rnode.bandwidth = rnode.conf_bandwidth
+						rnode.sf = rnode.conf_sf
+						rnode.cr = rnode.conf_cr
+						rnode.updateBitrate()
+						RNS.log("\tDevice signature:\t"+sigstring)
+						RNS.log("");
+						RNS.log("\tDevice mode:\t\tTNC")
+						RNS.log("\t  Frequency:\t\t"+str((rnode.conf_frequency/1000000.0))+" MHz")
+						RNS.log("\t  Bandwidth:\t\t"+str(rnode.conf_bandwidth/1000.0)+" KHz")
+						RNS.log("\t  TX power:\t\t"+str(rnode.conf_txpower)+" dBm")
+						RNS.log("\t  Spreading factor:\t"+str(rnode.conf_sf))
+						RNS.log("\t  Coding rate:\t\t"+str(rnode.conf_cr))
+						RNS.log("\t  On-air bitrate:\t"+str(rnode.bitrate_kbps)+" kbps")
+
+					else:
+						RNS.log("\tDevice mode:\t\tNormal (host-controlled)")
+						RNS.log("\tDevice signature:\t"+sigstring)
+
 					print("")
 					exit()
 
@@ -810,6 +850,56 @@ if __name__ == "__main__":
 
 
 			if rnode.provisioned:
+				if args.normal:
+					rnode.setNormalMode()
+					RNS.log("Device set to normal (host-controlled) operating mode")
+					exit()
+				if args.tnc:
+					if not (args.freq and args.bw and args.txp and args.sf and args.cr):
+						RNS.log("Please input startup configuration:")
+
+					print("")
+					if args.freq:
+						rnode.frequency = args.freq
+					else:
+						print "Frequency in Hz:\t",
+						rnode.frequency = int(raw_input())
+
+
+					if args.bw:
+						rnode.bandwidth = args.bw
+					else:
+						print "Bandwidth in Hz:\t",
+						rnode.bandwidth = int(raw_input())
+
+					if args.txp:
+						rnode.txpower = args.txp
+					else:
+						print "TX Power in dBm:\t",
+						rnode.txpower = int(raw_input())
+
+					if args.sf:
+						rnode.sf = args.sf
+					else:
+						print "Spreading factor:\t",
+						rnode.sf = int(raw_input())
+
+					if args.cr:
+						rnode.cr = args.cr
+					else:
+						print "Coding rate:\t\t",
+						rnode.cr = int(raw_input())
+
+					print("")
+
+					rnode.initRadio()
+					sleep(0.5)
+					rnode.setTNCMode()
+					RNS.log("Device set to TNC operating mode")
+					sleep(1.0)
+
+					exit()
+
 				config_interface()
 			else:
 				RNS.log("This device contains a valid firmware, but EEPROM is invalid.")
