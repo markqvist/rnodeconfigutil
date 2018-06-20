@@ -8,7 +8,7 @@ RNode can operate in two modes, host-controlled (default) and TNC mode:
 
 - When RNode is in host-controlled mode, it will stay in standby when powered on, until the host specifies frequency, bandwidth, transmit power and other required parameters. This mode can be enabled by using the -N option of this utility.
 
-- When RNode is in TNC mode, it will configure itself on powerup and enable the radio immediately. This mode can be enabled by using the -T option of this utility.
+- When RNode is in TNC mode, it will configure itself on powerup and enable the radio immediately. This mode can be enabled by using the -T option of this utility (the utility will guide you through the settings if you don't specify them directly).
 
 For a complete description of RNodes capabilities, documentation and more, please refer to the [RNode repository](https://github.com/markqvist/RNode_Firmware).
 
