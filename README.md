@@ -65,3 +65,35 @@ cd rnodeconfigutil
 chmod a+x rnodeconf
 ./rnodeconf --help
 ```
+
+## Examples
+
+### Show device info
+
+Print info like serial number, hardware revision, model and firmware version.
+
+```
+./rnodeconf /dev/ttyUSB0 -I
+```
+
+### Set RNode to TNC mode
+
+If you just specify the -T option, the utility will ask you for the necessary parameters.
+
+```
+./rnodeconf /dev/ttyUSB0 -T
+```
+
+You can also specify all the options on the command line.
+
+```
+./rnodeconf /dev/ttyuUSB0 -T --freq 868000000 --bw 125000 --txp 2 --sf 7 --cr 5
+```
+
+### Set RNode to host-controlled mode
+
+Use the -N option to set the device to host-controlled mode.
+
+```
+./rnodeconf /dev/ttyUSB0 -N
+```
