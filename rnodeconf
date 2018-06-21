@@ -13,6 +13,7 @@ rnode = None
 rnode_serial = None
 rnode_baudrate = 115200
 known_keys = [["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100e5d46084e445595376bf7efd9c6ccf19d39abbc59afdb763207e4ff68b8d00ebffb63847aa2fe6dd10783d3ea63b55ac66f71ad885c20e223709f0d51ed5c6c0d0b093be9e1d165bb8a483a548b67a3f7a1e4580f50e75b306593fa6067ae259d3e297717bd7ff8c8f5b07f2bed89929a9a0321026cf3699524db98e2d18fb2d020300ff39"]]
+ranges = { 0xA4: [410000000, 525000000, 14], 0xA9: [820000000, 1020000000, 17] }
 
 class RNS():
 	@staticmethod
@@ -140,6 +141,10 @@ class RNode():
 		self.signature = None
 		self.signature_valid = False
 		self.vendor = None
+
+		self.min_freq = None
+		self.max_freq = None
+		self.max_output = None
 
 		self.configured = None
 		self.conf_sf = None
@@ -400,6 +405,23 @@ class RNode():
 			self.serialno = "" + self.eeprom[ord(ROM.ADDR_SERIAL)] + self.eeprom[ord(ROM.ADDR_SERIAL)+1] + self.eeprom[ord(ROM.ADDR_SERIAL)+2] + self.eeprom[ord(ROM.ADDR_SERIAL)+3]
 			self.made = "" + self.eeprom[ord(ROM.ADDR_MADE)] + self.eeprom[ord(ROM.ADDR_MADE)+1] + self.eeprom[ord(ROM.ADDR_MADE)+2] + self.eeprom[ord(ROM.ADDR_MADE)+3]
 			self.checksum = ""
+
+
+			self.min_freq = ranges[ord(self.model)][0]
+			self.max_freq = ranges[ord(self.model)][1]
+			self.max_output = ranges[ord(self.model)][2]
+
+			try:
+				self.min_freq = ranges[ord(self.model)][0]
+				self.max_freq = ranges[ord(self.model)][1]
+				self.max_output = ranges[ord(self.model)][2]
+			except Exception as e:
+				RNS.log("Exception")
+				RNS.log(str(e))
+				self.min_freq = 0
+				self.max_freq = 0
+				self.max_output = 0
+
 			for i in range(0,16):
 				self.checksum = self.checksum+self.eeprom[ord(ROM.ADDR_CHKSUM)+i]
 
@@ -687,6 +709,8 @@ if __name__ == "__main__":
 					RNS.log("\tModel code:\t\t"+RNS.hexrep(rnode.model))
 					RNS.log("\tHardware revision:\t"+RNS.hexrep(rnode.hw_rev))
 					RNS.log("\tSerial number:\t\t"+RNS.hexrep(rnode.serialno))
+					RNS.log("\tFrequency range:\t"+str(rnode.min_freq/1e6)+" MHz - "+str(rnode.max_freq/1e6)+" MHz")
+					RNS.log("\tMax TX power:\t\t"+str(rnode.max_output)+" dBm")
 					RNS.log("\tManufactured:\t\t"+timestring)
 
 					if rnode.configured:
