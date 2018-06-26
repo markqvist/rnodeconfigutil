@@ -51,7 +51,7 @@ optional arguments:
 The config utility requires Python 2.7, pyserial and cryptography.io. To install:
 
 ```
-sudo apt install python
+sudo apt install python python-pip
 sudo pip install pyserial cryptography
 ```
 
