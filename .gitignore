@@ -2,6 +2,7 @@
 firmware/*.hex
 firmware/*.key
 firmware/*.counter
+update/*.hex
 eeprom/*.eeprom
 
 # Byte-compiled / optimized / DLL files

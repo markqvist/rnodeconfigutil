@@ -621,12 +621,31 @@ if __name__ == "__main__":
 			exit()
 
 		if args.port:
+			if args.update:
+				if os.path.isfile("./update/rnode_firmware.hex"):
+					try:
+						RNS.log("Updating RNode firmware for device on "+args.port)
+						from subprocess import call
+						flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/rnode_firmware.hex"])
+						if flash_status == 0:
+							RNS.log("Firmware updated")
+							args.info = True
+						else:
+							exit()
+
+					except Exception as e:
+						RNS.log("Error while updating firmware")
+						RNS.log(str(e))
+				else:
+					RNS.log("Firmware update file not found")
+					exit()
+
 			if args.flash:
-				if os.path.isfile("./firmware/firmware.hex"):
+				if os.path.isfile("./firmware/rnode_firmware.hex"):
 					try:
 						RNS.log("Flashing RNode firmware to device on "+args.port)
 						from subprocess import call
-						flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:firmware/firmware.hex"])
+						flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:firmware/rnode_firmware.hex"])
 						if flash_status == 0:
 							RNS.log("Done flashing")
 							args.rom = True

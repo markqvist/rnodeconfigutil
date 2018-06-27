@@ -55,6 +55,12 @@ sudo apt install python python-pip
 sudo pip install pyserial cryptography
 ```
 
+If you want to use the utility for firmware updating or flashing, you will also need avrdude:
+
+```
+sudo apt install avrdude
+```
+
 ## Installation
 
 Just clone or download this repository, place wherever you'd like and run rnodeconf (remember to set executable permissions):
