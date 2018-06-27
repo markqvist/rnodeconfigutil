@@ -169,8 +169,6 @@ class RNode():
 
 					if (in_frame and byte == KISS.FEND and command == KISS.CMD_ROM_READ):
 						self.eeprom = data_buffer
-						#RNS.log("Read "+str(len(self.eeprom))+" bytes of EEPROM from device")
-						#RNS.log(RNS.hexrep(self.eeprom))
 						in_frame = False
 						data_buffer = ""
 						command_buffer = ""
