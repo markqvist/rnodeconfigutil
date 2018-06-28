@@ -5,6 +5,7 @@ import threading
 import os.path
 import struct
 import datetime
+import urllib
 import time
 import math
 import imp
@@ -14,6 +15,7 @@ rnode_serial = None
 rnode_baudrate = 115200
 known_keys = [["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100e5d46084e445595376bf7efd9c6ccf19d39abbc59afdb763207e4ff68b8d00ebffb63847aa2fe6dd10783d3ea63b55ac66f71ad885c20e223709f0d51ed5c6c0d0b093be9e1d165bb8a483a548b67a3f7a1e4580f50e75b306593fa6067ae259d3e297717bd7ff8c8f5b07f2bed89929a9a0321026cf3699524db98e2d18fb2d020300ff39"]]
 ranges = { 0xA4: [410000000, 525000000, 14], 0xA9: [820000000, 1020000000, 17] }
+firmware_update_url = "https://github.com/markqvist/RNode_Firmware/raw/master/Precompiled/rnode_firmware_latest.hex"
 
 class RNS():
 	@staticmethod
@@ -536,13 +538,14 @@ if __name__ == "__main__":
 		parser.add_argument("-u", "--update", action="store_true", help="Update firmware")
 		parser.add_argument("-k", "--key", action="store_true", help="Generate a new signing key and exit")
 		parser.add_argument("-p", "--public", action="store_true", help="Display public part of signing key")
-		parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help="Model code for EEPROM bootstrap")
-		parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help="Hardware revision EEPROM bootstrap")
 		parser.add_argument("--freq", action="store", metavar="Hz", type=int, default=None, help="Frequency in Hz for TNC mode")
 		parser.add_argument("--bw", action="store", metavar="Hz", type=int, default=None, help="Bandwidth in Hz for TNC mode")
 		parser.add_argument("--txp", action="store", metavar="dBm", type=int, default=None, help="TX power in dBm for TNC mode")
 		parser.add_argument("--sf", action="store", metavar="factor", type=int, default=None, help="Spreading factor for TNC mode")
 		parser.add_argument("--cr", action="store", metavar="rate", type=int, default=None, help="Coding rate for TNC mode")
+		parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help="Model code for EEPROM bootstrap")
+		parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help="Hardware revision EEPROM bootstrap")
+		parser.add_argument("--nocheck", action="store_true", help="Don't check for firmware updates online")
 
 		parser.add_argument("port", nargs="?", default=None, help="serial port where RNode is attached", type=str)
 		args = parser.parse_args()
@@ -620,11 +623,19 @@ if __name__ == "__main__":
 
 		if args.port:
 			if args.update:
-				if os.path.isfile("./update/rnode_firmware.hex"):
+				if not args.nocheck:
+					try:
+						RNS.log("Downloading latest firmware from GitHub...")
+						urllib.urlretrieve(firmware_update_url, "update/rnode_update.hex")
+						RNS.log("Firmware download completed")
+					except Exception as e:
+						RNS.log("Could not download firmware update")
+
+				if os.path.isfile("./update/rnode_update.hex"):
 					try:
 						RNS.log("Updating RNode firmware for device on "+args.port)
 						from subprocess import call
-						flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/rnode_firmware.hex"])
+						flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/rnode_update.hex"])
 						if flash_status == 0:
 							RNS.log("Firmware updated")
 							args.info = True
