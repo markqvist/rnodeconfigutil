@@ -4,6 +4,10 @@ firmware/*.key
 firmware/*.counter
 update/*.hex
 eeprom/*.eeprom
+bootstrap
+fwupd
+otatest
+RNode.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
