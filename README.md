@@ -86,7 +86,7 @@ Print info like serial number, hardware revision, model and firmware version.
 Grab the latest precompiled firmware from the RNode Firmware repository and flash it to the device.
 
 ```
-./rnodeconf /dev/ttyUSB0 -I
+./rnodeconf /dev/ttyUSB0 -u
 ```
 
 ### Set RNode to TNC mode
