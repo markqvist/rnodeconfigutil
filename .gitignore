@@ -2,11 +2,14 @@
 firmware/*.hex
 firmware/*.key
 firmware/*.counter
+firmware/device_db
 update/*.hex
 eeprom/*.eeprom
 bootstrap
 fwupd
+romwipe
 otatest
+boardinfo
 RNode.py
 
 # Byte-compiled / optimized / DLL files
