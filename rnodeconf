@@ -14,7 +14,7 @@ rnode = None
 rnode_serial = None
 rnode_baudrate = 115200
 known_keys = [["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100e5d46084e445595376bf7efd9c6ccf19d39abbc59afdb763207e4ff68b8d00ebffb63847aa2fe6dd10783d3ea63b55ac66f71ad885c20e223709f0d51ed5c6c0d0b093be9e1d165bb8a483a548b67a3f7a1e4580f50e75b306593fa6067ae259d3e297717bd7ff8c8f5b07f2bed89929a9a0321026cf3699524db98e2d18fb2d020300ff39"]]
-ranges = { 0xA4: [410000000, 525000000, 14], 0xA9: [820000000, 1020000000, 17] }
+ranges = { 0xA4: [410000000, 525000000, 14], 0xA9: [820000000, 1020000000, 17],0xB1: [902000000, 928000000, 17] }
 firmware_update_url = "https://github.com/markqvist/RNode_Firmware/raw/master/Precompiled/rnode_firmware_latest.hex"
 
 class RNS():
@@ -90,6 +90,7 @@ class ROM():
 	PRODUCT_RNODE  = chr(0x03)
 	MODEL_A4       = chr(0xA4)
 	MODEL_A9       = chr(0xA9)
+	MODEL_B1       = chr(0xB1)
 
 	ADDR_PRODUCT   = chr(0x00)
 	ADDR_MODEL     = chr(0x01)
@@ -414,11 +415,6 @@ class RNode():
 			self.made = "" + self.eeprom[ord(ROM.ADDR_MADE)] + self.eeprom[ord(ROM.ADDR_MADE)+1] + self.eeprom[ord(ROM.ADDR_MADE)+2] + self.eeprom[ord(ROM.ADDR_MADE)+3]
 			self.checksum = ""
 
-
-			self.min_freq = ranges[ord(self.model)][0]
-			self.max_freq = ranges[ord(self.model)][1]
-			self.max_output = ranges[ord(self.model)][2]
-
 			try:
 				self.min_freq = ranges[ord(self.model)][0]
 				self.max_freq = ranges[ord(self.model)][1]
@@ -716,6 +712,7 @@ if __name__ == "__main__":
 				RNS.log("WARNING: EEPROM is being wiped!")
 				rnode.wipe_eeprom()
 
+
 			if args.dump:
 				RNS.log("EEPROM contents:")
 				RNS.log(RNS.hexrep(rnode.eeprom))
@@ -806,8 +803,10 @@ if __name__ == "__main__":
 					hwrev = None
 					if args.model == "a4":
 						model = ROM.MODEL_A4
-					if args.model == "a9":
+					elif args.model == "a9":
 						model = ROM.MODEL_A9
+					elif args.model == "b1":
+						model = ROM.MODEL_B1
 					if args.hwrev > 0 and args.hwrev < 256:
 						hwrev = chr(args.hwrev)
 
