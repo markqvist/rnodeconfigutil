@@ -368,7 +368,7 @@ class RNode():
 
     def detect(self):
         kiss_command = bytes([KISS.FEND, KISS.CMD_DETECT, KISS.DETECT_REQ, KISS.FEND, KISS.CMD_FW_VERSION, 0x00, KISS.FEND])
-        written = self.write(kiss_command)
+        written = self.serial.write(kiss_command)
         if written != len(kiss_command):
             raise IOError("An IO error occurred while configuring spreading factor for "+self(str))
 
@@ -760,7 +760,7 @@ def main():
             thread.start()
 
             try:
-                device_probe()
+                rnode.device_probe()
             except Exception as e:
                 RNS.log("Serial port opened, but RNode did not respond. Is a valid firmware installed?")
                 print(e)
