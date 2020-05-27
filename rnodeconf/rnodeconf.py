@@ -1,4 +1,27 @@
 #!python3
+
+# MIT License
+#
+# Copyright (c) 2018 Mark Qvist - unsigned.io
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from time import sleep
 import argparse
 import threading
@@ -450,8 +473,6 @@ class RNode():
 
     def parse_eeprom(self):
         if self.eeprom[ROM.ADDR_INFO_LOCK] == ROM.INFO_LOCK_BYTE:
-            # TODO: Remove
-            RNS.log("Provisioned device")
             from cryptography.hazmat.primitives import hashes
             from cryptography.hazmat.backends import default_backend
 
@@ -548,7 +569,7 @@ def device_probe():
 def config_interface():
     pass
 
-if __name__ == "__main__":
+def main():
     try:
         if not util.find_spec("serial"):
             raise ImportError("Serial module could not be found")
@@ -1030,3 +1051,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("")
         exit()
+
+if __name__ == "__main__":
+    main()
