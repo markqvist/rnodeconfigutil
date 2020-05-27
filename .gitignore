@@ -11,6 +11,7 @@ romwipe
 otatest
 boardinfo
 RNode.py
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
