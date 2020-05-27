@@ -80,10 +80,10 @@ cd rnodeconfigutil
 chmod a+x rnodeconf/rnodeconf.py
 
 # Symlink executable to main directory
-ln -s rnodeconf/rnodeconf.py rnodeconf
+ln -s rnodeconf/rnodeconf.py rnodeconfig
 
 # Run rnodeconf
-./rnodeconf --help
+./rnodeconfig --help
 ```
 
 ## Dependencies

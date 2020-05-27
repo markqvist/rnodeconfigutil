@@ -12,6 +12,7 @@ otatest
 boardinfo
 RNode.py
 .DS_Store
+rnodeconfig
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
