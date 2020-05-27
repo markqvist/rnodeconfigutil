@@ -948,33 +948,33 @@ if __name__ == "__main__":
                     if args.freq:
                         rnode.frequency = args.freq
                     else:
-                        print "Frequency in Hz:\t",
-                        rnode.frequency = int(raw_input())
+                        print("Frequency in Hz:\t", end="")
+                        rnode.frequency = int(input())
 
 
                     if args.bw:
                         rnode.bandwidth = args.bw
                     else:
-                        print "Bandwidth in Hz:\t",
-                        rnode.bandwidth = int(raw_input())
+                        print("Bandwidth in Hz:\t", end="")
+                        rnode.bandwidth = int(input())
 
                     if args.txp:
                         rnode.txpower = args.txp
                     else:
-                        print "TX Power in dBm:\t",
-                        rnode.txpower = int(raw_input())
+                        print("TX Power in dBm:\t", end="")
+                        rnode.txpower = int(input())
 
                     if args.sf:
                         rnode.sf = args.sf
                     else:
-                        print "Spreading factor:\t",
-                        rnode.sf = int(raw_input())
+                        print("Spreading factor:\t", end="")
+                        rnode.sf = int(input())
 
                     if args.cr:
                         rnode.cr = args.cr
                     else:
-                        print "Coding rate:\t\t",
-                        rnode.cr = int(raw_input())
+                        print("Coding rate:\t\t", end="")
+                        rnode.cr = int(input())
 
                     print("")
 
