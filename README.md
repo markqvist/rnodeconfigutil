@@ -46,30 +46,53 @@ optional arguments:
   --cr rate         Coding rate for TNC mode
 ```
 
-## Dependencies
+## Installation
 
-The config utility requires Python 2.7, pyserial and cryptography.io. To install:
+The easiest way to install the configuration utility is with pip:
 
-```
-sudo apt install python python-pip
-sudo pip install pyserial cryptography
+```sh
+# If you don't already have pip installed
+sudo apt install python3-pip
+
+# Install rnodeconf with pip
+pip3 install rnodeconf
+
+# Run rnodeconf
+rnodeconf --help
 ```
 
 If you want to use the utility for firmware updating or flashing, you will also need avrdude:
 
-```
+```sh
 sudo apt install avrdude
 ```
 
-## Installation
+You can also clone or download this repository, place it wherever you'd like and run rnodeconf from there:
 
-Just clone or download this repository, place wherever you'd like and run rnodeconf (remember to set executable permissions):
-
-```
+```sh
+# Clone repository
 git clone https://github.com/markqvist/rnodeconfigutil.git
+
+# Move into folder
 cd rnodeconfigutil
-chmod a+x rnodeconf
+
+# Set executable permission on rnodeconf
+chmod a+x rnodeconf/rnodeconf.py
+
+# Symlink executable to main directory
+ln -s rnodeconf/rnodeconf.py rnodeconf
+
+# Run rnodeconf
 ./rnodeconf --help
+```
+
+## Dependencies
+
+The config utility requires Python 3, pyserial and cryptography.io. To install:
+
+```sh
+# Install dependencies for rnodeconf
+sudo pip3 install pyserial cryptography
 ```
 
 ## Examples
@@ -78,35 +101,35 @@ chmod a+x rnodeconf
 
 Print info like serial number, hardware revision, model and firmware version.
 
-```
-./rnodeconf /dev/ttyUSB0 -I
+```sh
+rnodeconf /dev/ttyUSB0 -I
 ```
 ### Update the firmware
 
 Grab the latest precompiled firmware from the RNode Firmware repository and flash it to the device.
 
-```
-./rnodeconf /dev/ttyUSB0 -u
+```sh
+rnodeconf /dev/ttyUSB0 -u
 ```
 
 ### Set RNode to TNC mode
 
 If you just specify the -T option, the utility will ask you for the necessary parameters.
 
-```
-./rnodeconf /dev/ttyUSB0 -T
+```sh
+rnodeconf /dev/ttyUSB0 -T
 ```
 
 You can also specify all the options on the command line.
 
-```
-./rnodeconf /dev/ttyuUSB0 -T --freq 868000000 --bw 125000 --txp 2 --sf 7 --cr 5
+```sh
+rnodeconf /dev/ttyuUSB0 -T --freq 868000000 --bw 125000 --txp 2 --sf 7 --cr 5
 ```
 
 ### Set RNode to host-controlled mode
 
 Use the -N option to set the device to host-controlled mode.
 
-```
-./rnodeconf /dev/ttyUSB0 -N
+```sh
+rnodeconf /dev/ttyUSB0 -N
 ```
