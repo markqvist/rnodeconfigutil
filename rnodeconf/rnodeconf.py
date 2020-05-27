@@ -25,6 +25,7 @@
 from time import sleep
 import argparse
 import threading
+import os
 import os.path
 import struct
 import datetime
@@ -367,7 +368,7 @@ class RNode():
 
     def detect(self):
         kiss_command = bytes([KISS.FEND, KISS.CMD_DETECT, KISS.DETECT_REQ, KISS.FEND, KISS.CMD_FW_VERSION, 0x00, KISS.FEND])
-        written = rnode_serial.write(kiss_command)
+        written = self.write(kiss_command)
         if written != len(kiss_command):
             raise IOError("An IO error occurred while configuring spreading factor for "+self(str))
 
@@ -555,19 +556,16 @@ class RNode():
             self.provisioned = False
 
 
-def device_probe():
-    sleep(2.5)
-    rnode.detect()
-    sleep(0.1)
-    if rnode.detected == True:
-        RNS.log("Device connected")
-        RNS.log("Firmware version: "+rnode.version)
-        return True
-    else:
-        raise IOError("Got invalid response while detecting device")
-
-def config_interface():
-    pass
+    def device_probe(self):
+        sleep(2.5)
+        self.detect()
+        sleep(0.1)
+        if self.detected == True:
+            RNS.log("Device connected")
+            RNS.log("Firmware version: "+self.version)
+            return True
+        else:
+            raise IOError("Got invalid response while detecting device")
 
 def main():
     try:
@@ -693,6 +691,7 @@ def main():
                 if not args.nocheck:
                     try:
                         RNS.log("Downloading latest firmware from GitHub...")
+                        os.makedirs("update")
                         urlretrieve(firmware_update_url, "update/rnode_update.hex")
                         RNS.log("Firmware download completed")
                     except Exception as e:
@@ -1034,8 +1033,6 @@ def main():
                     sleep(1.0)
 
                     exit()
-
-                config_interface()
             else:
                 RNS.log("This device contains a valid firmware, but EEPROM is invalid.")
                 RNS.log("Probably the device has not been initialised, or the EEPROM has been erased.")
