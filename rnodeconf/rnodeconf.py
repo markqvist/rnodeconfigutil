@@ -691,29 +691,31 @@ def main():
                 if not args.nocheck:
                     try:
                         RNS.log("Downloading latest firmware from GitHub...")
-                        os.makedirs("update")
+                        os.makedirs("update", exist_ok=True)
                         urlretrieve(firmware_update_url, "update/rnode_update.hex")
                         RNS.log("Firmware download completed")
-                    except Exception as e:
-                        RNS.log("Could not download firmware update")
+                        if os.path.isfile("./update/rnode_update.hex"):
+                            try:
+                                RNS.log("Updating RNode firmware for device on "+args.port)
+                                from subprocess import call
+                                flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/rnode_update.hex"])
+                                if flash_status == 0:
+                                    RNS.log("Firmware updated")
+                                    args.info = True
+                                else:
+                                    exit()
 
-                if os.path.isfile("./update/rnode_update.hex"):
-                    try:
-                        RNS.log("Updating RNode firmware for device on "+args.port)
-                        from subprocess import call
-                        flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/rnode_update.hex"])
-                        if flash_status == 0:
-                            RNS.log("Firmware updated")
-                            args.info = True
+                            except Exception as e:
+                                RNS.log("Error while updating firmware")
+                                RNS.log(str(e))
                         else:
+                            RNS.log("Firmware update file not found")
                             exit()
 
                     except Exception as e:
-                        RNS.log("Error while updating firmware")
-                        RNS.log(str(e))
-                else:
-                    RNS.log("Firmware update file not found")
-                    exit()
+                        RNS.log("Could not download firmware update")
+                        RNS.log("The contained exception was: "+str(e))
+                        exit()
 
             if args.flash:
                 if os.path.isfile("./firmware/rnode_firmware.hex"):
@@ -1006,7 +1008,7 @@ def main():
                         print("Bandwidth in Hz:\t", end="")
                         rnode.bandwidth = int(input())
 
-                    if args.txp:
+                    if args.txp >= 0 and args.txp <= 17:
                         rnode.txpower = args.txp
                     else:
                         print("TX Power in dBm:\t", end="")
