@@ -1008,7 +1008,7 @@ def main():
                         print("Bandwidth in Hz:\t", end="")
                         rnode.bandwidth = int(input())
 
-                    if args.txp >= 0 and args.txp <= 17:
+                    if args.txp != None and (args.txp >= 0 and args.txp <= 17):
                         rnode.txpower = args.txp
                     else:
                         print("TX Power in dBm:\t", end="")
