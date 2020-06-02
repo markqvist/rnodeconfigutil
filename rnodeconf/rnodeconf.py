@@ -870,7 +870,7 @@ def main():
                         model = ROM.MODEL_A4
                     if args.model == "a9":
                         model = ROM.MODEL_A9
-                    if args.hwrev > 0 and args.hwrev < 256:
+                    if args.hwrev != None and (args.hwrev > 0 and args.hwrev < 256):
                         hwrev = chr(args.hwrev)
 
                     if serialno > 0 and model != None and hwrev != None:

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rnodeconf",
-    version="0.9.9",
+    version="0.9.10",
     author="Mark Qvist",
     author_email="mark@unsigned.io",
     description="Configuration Utility for RNode hardware",
