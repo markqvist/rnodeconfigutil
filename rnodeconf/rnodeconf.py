@@ -34,6 +34,8 @@ import math
 from urllib.request import urlretrieve
 from importlib import util
 
+program_version = "1.0.0"
+
 rnode = None
 rnode_serial = None
 rnode_baudrate = 115200
@@ -168,6 +170,7 @@ class RNode():
         self.checksum = None
         self.signature = None
         self.signature_valid = False
+        self.locally_signed = False
         self.vendor = None
 
         self.min_freq = None
@@ -520,9 +523,48 @@ class RNode():
                 exit()
             else:
                 RNS.log("EEPROM checksum correct")
+
+                from cryptography.hazmat.primitives import serialization
                 from cryptography.hazmat.primitives.serialization import load_der_public_key
                 from cryptography.hazmat.primitives.serialization import load_der_private_key
                 from cryptography.hazmat.primitives.asymmetric import padding
+
+                # Try loading local signing key for 
+                # validation of self-signed devices
+                if os.path.isdir("./firmware") and os.path.isfile("./firmware/signing.key"):
+                    private_bytes = None
+                    try:
+                        file = open("./firmware/signing.key", "rb")
+                        private_bytes = file.read()
+                        file.close()
+                    except Exception as e:
+                        RNS.log("Could not load local signing key")
+
+                    try:
+                        private_key = serialization.load_der_private_key(
+                            private_bytes,
+                            password=None,
+                            backend=default_backend()
+                        )
+                        public_key = private_key.public_key()
+                        public_bytes = public_key.public_bytes(
+                            encoding=serialization.Encoding.DER,
+                            format=serialization.PublicFormat.SubjectPublicKeyInfo
+                        )
+                        public_bytes_hex = RNS.hexrep(public_bytes, delimit=False)
+
+                        vendor_keys = []
+                        for known in known_keys:
+                            vendor_keys.append(known[1])
+
+                        if not public_bytes_hex in vendor_keys:
+                            local_key_entry = ["LOCAL", public_bytes_hex]
+                            known_keys.append(local_key_entry)
+
+                    except Exception as e:
+                        RNS.log("Could not deserialize local signing key")
+                        RNS.log(str(e))
+
                 for known in known_keys:
                     vendor = known[0]
                     public_hexrep = known[1]
@@ -537,11 +579,18 @@ class RNode():
                                 salt_length=padding.PSS.MAX_LENGTH
                             ),
                             hashes.SHA256())
-                        RNS.log("Board signature validated")
+                        if vendor == "LOCAL":
+                            self.locally_signed = True
+
                         self.signature_valid = True
                         self.vendor = vendor
                     except Exception as e:
-                        RNS.log("Board signature validation failed")
+                        pass
+
+                if self.signature_valid:
+                    RNS.log("Device signature validated")
+                else:
+                    RNS.log("Device signature validation failed")
 
             if self.eeprom[ROM.ADDR_CONF_OK] == ROM.CONF_OK_BYTE:
                 self.configured = True
@@ -610,10 +659,15 @@ def main():
         parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help="Model code for EEPROM bootstrap")
         parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help="Hardware revision EEPROM bootstrap")
         parser.add_argument("--nocheck", action="store_true", help="Don't check for firmware updates online")
-        parser.add_argument("--eepromwipe", action="store_true", help="Unlock and wipe EEPROM")     
+        parser.add_argument("--eepromwipe", action="store_true", help="Unlock and wipe EEPROM")
+        parser.add_argument("--version", action="store_true", help="Print version and exit")
 
         parser.add_argument("port", nargs="?", default=None, help="serial port where RNode is attached", type=str)
         args = parser.parse_args()
+
+        if args.version:
+            print("rnodeconf "+program_version)
+            exit(0)
 
         if args.public or args.key or args.flash or args.rom:
             from cryptography.hazmat.primitives import hashes
@@ -669,6 +723,7 @@ def main():
                 encoding=serialization.Encoding.DER,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
+            os.makedirs("./firmware", exist_ok=True)
             if os.path.isdir("./firmware"):
                 if os.path.isfile("./firmware/signing.key"):
                     RNS.log("Signing key already exists, not overwriting!")
@@ -691,7 +746,7 @@ def main():
                 if not args.nocheck:
                     try:
                         RNS.log("Downloading latest firmware from GitHub...")
-                        os.makedirs("update", exist_ok=True)
+                        os.makedirs("./update", exist_ok=True)
                         urlretrieve(firmware_update_url, "update/rnode_update.hex")
                         RNS.log("Firmware download completed")
                         if os.path.isfile("./update/rnode_update.hex"):
@@ -772,7 +827,7 @@ def main():
             rnode.download_eeprom()
 
             if args.eepromwipe:
-                RNS.log("WARNING: EEPROM is being wiped!")
+                RNS.log("WARNING: EEPROM is being wiped! Power down device NOW if you do not want this!")
                 rnode.wipe_eeprom()
 
             if args.dump:
@@ -800,10 +855,13 @@ def main():
                     timestring = datetime.datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
                     sigstring = "Unverified"
                     if rnode.signature_valid:
-                        sigstring = "Genuine board, vendor is "+rnode.vendor
+                        if rnode.locally_signed:
+                            sigstring = "Validated - Local signature"
+                        else:
+                            sigstring = "Genuine board, vendor is "+rnode.vendor
 
                     RNS.log("")
-                    RNS.log("Board info:")
+                    RNS.log("Device info:")
                     RNS.log("\tFirmware version:\t"+rnode.version)
                     RNS.log("\tProduct code:\t\t"+bytes([rnode.product]).hex())
                     RNS.log("\tModel code:\t\t"+bytes([rnode.model]).hex())
@@ -848,6 +906,7 @@ def main():
                     RNS.log("No changes are being made.")
                     exit()
                 else:
+                    os.makedirs("./firmware", exist_ok=True)
                     counter = None
                     counter_path = "./firmware/serial.counter"
                     try:
@@ -966,6 +1025,7 @@ def main():
                             if rnode.provisioned:
                                 RNS.log("EEPROM Bootstrapping successful!")
                                 try:
+                                    os.makedirs("./firmware/device_db/", exist_ok=True)
                                     file = open("./firmware/device_db/"+serial_bytes.hex(), "wb")
                                     written = file.write(rnode.eeprom)
                                     file.close()
