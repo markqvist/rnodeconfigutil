@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rnodeconf",
-    version="1.0.0",
+    version="1.0.1",
     author="Mark Qvist",
     author_email="mark@unsigned.io",
     description="Configuration Utility for RNode hardware",
@@ -22,5 +22,5 @@ setuptools.setup(
         'console_scripts': ['rnodeconf=rnodeconf:main']
     },
     install_requires=['pyserial', 'cryptography'],
-    python_requires='>=3.6',
+    python_requires='>=3.5',
 )
