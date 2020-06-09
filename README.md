@@ -61,6 +61,15 @@ pip3 install rnodeconf
 rnodeconf --help
 ```
 
+On some operating systems, programs installed by pip cannot be run simply by typing their name. If you get a __command not found__ error, you will have to add the pip install directory to your PATH variable. The best way to do this is to edit the ".profile" file in your home directory and add the following lines at the bottom of the file:
+
+```sh
+# Include locally installed programs in path
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+```
+
 If you want to use the utility for firmware updating or flashing, you will also need avrdude:
 
 ```sh
