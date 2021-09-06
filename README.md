@@ -102,7 +102,7 @@ sudo pip3 install pyserial cryptography
 Print info like serial number, hardware revision, model and firmware version.
 
 ```sh
-rnodeconf /dev/ttyUSB0 -I
+rnodeconf /dev/ttyUSB0 -i
 ```
 ### Update the firmware
 

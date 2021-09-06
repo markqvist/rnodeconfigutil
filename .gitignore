@@ -6,6 +6,8 @@ firmware/device_db
 update/*.hex
 eeprom/*.eeprom
 bootstrap
+bootloader.sh
+bootstrapmany
 fwupd
 romwipe
 otatest
