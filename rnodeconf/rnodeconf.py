@@ -709,7 +709,7 @@ def main():
         if args.key:
             RNS.log("Generating a new signing key...")
             private_key = rsa.generate_private_key(
-                public_exponent=65337,
+                public_exponent=65537,
                 key_size=1024,
                 backend=default_backend()
             )
