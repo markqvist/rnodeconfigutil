@@ -608,7 +608,7 @@ class RNode():
     def device_probe(self):
         sleep(2.5)
         self.detect()
-        sleep(0.1)
+        sleep(0.5)
         if self.detected == True:
             RNS.log("Device connected")
             RNS.log("Firmware version: "+self.version)
