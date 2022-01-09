@@ -34,7 +34,7 @@ import math
 from urllib.request import urlretrieve
 from importlib import util
 
-program_version = "1.0.0"
+program_version = "1.1.0"
 
 rnode = None
 rnode_serial = None
@@ -53,6 +53,11 @@ class RNS():
 
     @staticmethod
     def hexrep(data, delimit=True):
+        try:
+            iter(data)
+        except TypeError:
+            data = [data]
+
         delimiter = ":"
         if not delimit:
             delimiter = ""
@@ -94,6 +99,7 @@ class KISS():
     CMD_ROM_WIPE    = 0x59
     CMD_CONF_SAVE   = 0x53
     CMD_CONF_DELETE = 0x54
+    CMD_RESET       = 0x55
 
     DETECT_REQ      = 0x73
     DETECT_RESP     = 0x46
@@ -332,7 +338,7 @@ class RNode():
                         elif (command == KISS.CMD_ERROR):
                             if (byte == KISS.ERROR_INITRADIO):
                                 RNS.log(str(self)+" hardware initialisation error (code "+RNS.hexrep(byte)+")")
-                            elif (byte == KISS.ERROR_INITRADIO):
+                            elif (byte == KISS.ERROR_TXFAILED):
                                 RNS.log(str(self)+" hardware TX error (code "+RNS.hexrep(byte)+")")
                             else:
                                 RNS.log(str(self)+" hardware error (code "+RNS.hexrep(byte)+")")
@@ -453,6 +459,13 @@ class RNode():
             raise IOError("An IO error occurred while wiping EEPROM")
         sleep(13);
 
+    def hard_reset(self):
+        kiss_command = bytes([KISS.FEND, KISS.CMD_RESET, 0xf8, KISS.FEND])
+        written = self.serial.write(kiss_command)
+        if written != len(kiss_command):
+            raise IOError("An IO error occurred while restarting device")
+        sleep(1);
+
     def write_eeprom(self, addr, byte):
         write_payload = b"" + bytes([addr, byte])
         write_payload = KISS.escape(write_payload)
@@ -476,133 +489,137 @@ class RNode():
             self.parse_eeprom()
 
     def parse_eeprom(self):
-        if self.eeprom[ROM.ADDR_INFO_LOCK] == ROM.INFO_LOCK_BYTE:
-            from cryptography.hazmat.primitives import hashes
-            from cryptography.hazmat.backends import default_backend
+        try:
+            if self.eeprom[ROM.ADDR_INFO_LOCK] == ROM.INFO_LOCK_BYTE:
+                from cryptography.hazmat.primitives import hashes
+                from cryptography.hazmat.backends import default_backend
 
-            self.provisioned = True
+                self.provisioned = True
 
-            self.product = self.eeprom[ROM.ADDR_PRODUCT]
-            self.model = self.eeprom[ROM.ADDR_MODEL]
-            self.hw_rev = self.eeprom[ROM.ADDR_HW_REV]
-            self.serialno = bytes([self.eeprom[ROM.ADDR_SERIAL], self.eeprom[ROM.ADDR_SERIAL+1], self.eeprom[ROM.ADDR_SERIAL+2], self.eeprom[ROM.ADDR_SERIAL+3]])
-            self.made = bytes([self.eeprom[ROM.ADDR_MADE], self.eeprom[ROM.ADDR_MADE+1], self.eeprom[ROM.ADDR_MADE+2], self.eeprom[ROM.ADDR_MADE+3]])
-            self.checksum = b""
+                self.product = self.eeprom[ROM.ADDR_PRODUCT]
+                self.model = self.eeprom[ROM.ADDR_MODEL]
+                self.hw_rev = self.eeprom[ROM.ADDR_HW_REV]
+                self.serialno = bytes([self.eeprom[ROM.ADDR_SERIAL], self.eeprom[ROM.ADDR_SERIAL+1], self.eeprom[ROM.ADDR_SERIAL+2], self.eeprom[ROM.ADDR_SERIAL+3]])
+                self.made = bytes([self.eeprom[ROM.ADDR_MADE], self.eeprom[ROM.ADDR_MADE+1], self.eeprom[ROM.ADDR_MADE+2], self.eeprom[ROM.ADDR_MADE+3]])
+                self.checksum = b""
 
 
-            self.min_freq = ranges[self.model][0]
-            self.max_freq = ranges[self.model][1]
-            self.max_output = ranges[self.model][2]
-
-            try:
                 self.min_freq = ranges[self.model][0]
                 self.max_freq = ranges[self.model][1]
                 self.max_output = ranges[self.model][2]
-            except Exception as e:
-                RNS.log("Exception")
-                RNS.log(str(e))
-                self.min_freq = 0
-                self.max_freq = 0
-                self.max_output = 0
 
-            for i in range(0,16):
-                self.checksum = self.checksum+bytes([self.eeprom[ROM.ADDR_CHKSUM+i]])
+                try:
+                    self.min_freq = ranges[self.model][0]
+                    self.max_freq = ranges[self.model][1]
+                    self.max_output = ranges[self.model][2]
+                except Exception as e:
+                    RNS.log("Exception")
+                    RNS.log(str(e))
+                    self.min_freq = 0
+                    self.max_freq = 0
+                    self.max_output = 0
 
-            self.signature = b""
-            for i in range(0,128):
-                self.signature = self.signature+bytes([self.eeprom[ROM.ADDR_SIGNATURE+i]])
+                for i in range(0,16):
+                    self.checksum = self.checksum+bytes([self.eeprom[ROM.ADDR_CHKSUM+i]])
 
-            checksummed_info = b"" + bytes([self.product]) + bytes([self.model]) + bytes([self.hw_rev]) + self.serialno + self.made
-            digest = hashes.Hash(hashes.MD5(), backend=default_backend())
-            digest.update(checksummed_info)
-            checksum = digest.finalize()
+                self.signature = b""
+                for i in range(0,128):
+                    self.signature = self.signature+bytes([self.eeprom[ROM.ADDR_SIGNATURE+i]])
 
-            if self.checksum != checksum:
-                self.provisioned = False
-                RNS.log("EEPROM checksum mismatch")
-                exit()
-            else:
-                RNS.log("EEPROM checksum correct")
+                checksummed_info = b"" + bytes([self.product]) + bytes([self.model]) + bytes([self.hw_rev]) + self.serialno + self.made
+                digest = hashes.Hash(hashes.MD5(), backend=default_backend())
+                digest.update(checksummed_info)
+                checksum = digest.finalize()
 
-                from cryptography.hazmat.primitives import serialization
-                from cryptography.hazmat.primitives.serialization import load_der_public_key
-                from cryptography.hazmat.primitives.serialization import load_der_private_key
-                from cryptography.hazmat.primitives.asymmetric import padding
-
-                # Try loading local signing key for 
-                # validation of self-signed devices
-                if os.path.isdir("./firmware") and os.path.isfile("./firmware/signing.key"):
-                    private_bytes = None
-                    try:
-                        file = open("./firmware/signing.key", "rb")
-                        private_bytes = file.read()
-                        file.close()
-                    except Exception as e:
-                        RNS.log("Could not load local signing key")
-
-                    try:
-                        private_key = serialization.load_der_private_key(
-                            private_bytes,
-                            password=None,
-                            backend=default_backend()
-                        )
-                        public_key = private_key.public_key()
-                        public_bytes = public_key.public_bytes(
-                            encoding=serialization.Encoding.DER,
-                            format=serialization.PublicFormat.SubjectPublicKeyInfo
-                        )
-                        public_bytes_hex = RNS.hexrep(public_bytes, delimit=False)
-
-                        vendor_keys = []
-                        for known in known_keys:
-                            vendor_keys.append(known[1])
-
-                        if not public_bytes_hex in vendor_keys:
-                            local_key_entry = ["LOCAL", public_bytes_hex]
-                            known_keys.append(local_key_entry)
-
-                    except Exception as e:
-                        RNS.log("Could not deserialize local signing key")
-                        RNS.log(str(e))
-
-                for known in known_keys:
-                    vendor = known[0]
-                    public_hexrep = known[1]
-                    public_bytes = bytes.fromhex(public_hexrep)
-                    public_key = load_der_public_key(public_bytes, backend=default_backend())
-                    try:
-                        public_key.verify(
-                            self.signature,
-                            self.checksum,
-                            padding.PSS(
-                                mgf=padding.MGF1(hashes.SHA256()),
-                                salt_length=padding.PSS.MAX_LENGTH
-                            ),
-                            hashes.SHA256())
-                        if vendor == "LOCAL":
-                            self.locally_signed = True
-
-                        self.signature_valid = True
-                        self.vendor = vendor
-                    except Exception as e:
-                        pass
-
-                if self.signature_valid:
-                    RNS.log("Device signature validated")
+                if self.checksum != checksum:
+                    self.provisioned = False
+                    RNS.log("EEPROM checksum mismatch")
+                    exit()
                 else:
-                    RNS.log("Device signature validation failed")
+                    RNS.log("EEPROM checksum correct")
 
-            if self.eeprom[ROM.ADDR_CONF_OK] == ROM.CONF_OK_BYTE:
-                self.configured = True
-                self.conf_sf = self.eeprom[ROM.ADDR_CONF_SF]
-                self.conf_cr = self.eeprom[ROM.ADDR_CONF_CR]
-                self.conf_txpower = self.eeprom[ROM.ADDR_CONF_TXP]
-                self.conf_frequency = self.eeprom[ROM.ADDR_CONF_FREQ] << 24 | self.eeprom[ROM.ADDR_CONF_FREQ+1] << 16 | self.eeprom[ROM.ADDR_CONF_FREQ+2] << 8 | self.eeprom[ROM.ADDR_CONF_FREQ+3]
-                self.conf_bandwidth = self.eeprom[ROM.ADDR_CONF_BW] << 24 | self.eeprom[ROM.ADDR_CONF_BW+1] << 16 | self.eeprom[ROM.ADDR_CONF_BW+2] << 8 | self.eeprom[ROM.ADDR_CONF_BW+3]
+                    from cryptography.hazmat.primitives import serialization
+                    from cryptography.hazmat.primitives.serialization import load_der_public_key
+                    from cryptography.hazmat.primitives.serialization import load_der_private_key
+                    from cryptography.hazmat.primitives.asymmetric import padding
+
+                    # Try loading local signing key for 
+                    # validation of self-signed devices
+                    if os.path.isdir("./firmware") and os.path.isfile("./firmware/signing.key"):
+                        private_bytes = None
+                        try:
+                            file = open("./firmware/signing.key", "rb")
+                            private_bytes = file.read()
+                            file.close()
+                        except Exception as e:
+                            RNS.log("Could not load local signing key")
+
+                        try:
+                            private_key = serialization.load_der_private_key(
+                                private_bytes,
+                                password=None,
+                                backend=default_backend()
+                            )
+                            public_key = private_key.public_key()
+                            public_bytes = public_key.public_bytes(
+                                encoding=serialization.Encoding.DER,
+                                format=serialization.PublicFormat.SubjectPublicKeyInfo
+                            )
+                            public_bytes_hex = RNS.hexrep(public_bytes, delimit=False)
+
+                            vendor_keys = []
+                            for known in known_keys:
+                                vendor_keys.append(known[1])
+
+                            if not public_bytes_hex in vendor_keys:
+                                local_key_entry = ["LOCAL", public_bytes_hex]
+                                known_keys.append(local_key_entry)
+
+                        except Exception as e:
+                            RNS.log("Could not deserialize local signing key")
+                            RNS.log(str(e))
+
+                    for known in known_keys:
+                        vendor = known[0]
+                        public_hexrep = known[1]
+                        public_bytes = bytes.fromhex(public_hexrep)
+                        public_key = load_der_public_key(public_bytes, backend=default_backend())
+                        try:
+                            public_key.verify(
+                                self.signature,
+                                self.checksum,
+                                padding.PSS(
+                                    mgf=padding.MGF1(hashes.SHA256()),
+                                    salt_length=padding.PSS.MAX_LENGTH
+                                ),
+                                hashes.SHA256())
+                            if vendor == "LOCAL":
+                                self.locally_signed = True
+
+                            self.signature_valid = True
+                            self.vendor = vendor
+                        except Exception as e:
+                            pass
+
+                    if self.signature_valid:
+                        RNS.log("Device signature validated")
+                    else:
+                        RNS.log("Device signature validation failed")
+
+                if self.eeprom[ROM.ADDR_CONF_OK] == ROM.CONF_OK_BYTE:
+                    self.configured = True
+                    self.conf_sf = self.eeprom[ROM.ADDR_CONF_SF]
+                    self.conf_cr = self.eeprom[ROM.ADDR_CONF_CR]
+                    self.conf_txpower = self.eeprom[ROM.ADDR_CONF_TXP]
+                    self.conf_frequency = self.eeprom[ROM.ADDR_CONF_FREQ] << 24 | self.eeprom[ROM.ADDR_CONF_FREQ+1] << 16 | self.eeprom[ROM.ADDR_CONF_FREQ+2] << 8 | self.eeprom[ROM.ADDR_CONF_FREQ+3]
+                    self.conf_bandwidth = self.eeprom[ROM.ADDR_CONF_BW] << 24 | self.eeprom[ROM.ADDR_CONF_BW+1] << 16 | self.eeprom[ROM.ADDR_CONF_BW+2] << 8 | self.eeprom[ROM.ADDR_CONF_BW+3]
+                else:
+                    self.configured = False
             else:
-                self.configured = False
-        else:
+                self.provisioned = False
+        except Exception as e:
             self.provisioned = False
+            RNS.log("Invalid EEPROM data, could not parse device EEPROM.")
 
 
     def device_probe(self):
