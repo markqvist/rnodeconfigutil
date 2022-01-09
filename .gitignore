@@ -1,6 +1,6 @@
 # Firmware and signing keys
 firmware/*.hex
-firmware/*.key
+firmware/*.key*
 firmware/*.counter
 firmware/device_db
 update/*.hex
