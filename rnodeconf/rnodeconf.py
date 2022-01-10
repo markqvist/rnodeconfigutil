@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# Copyright (c) 2018 Mark Qvist - unsigned.io
+# Copyright (c) 2018 Mark Qvist - unsigned.io/rnode
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -38,10 +38,12 @@ program_version = "1.1.0"
 
 rnode = None
 rnode_serial = None
+rnode_port = None
 rnode_baudrate = 115200
-known_keys = [["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100e5d46084e445595376bf7efd9c6ccf19d39abbc59afdb763207e4ff68b8d00ebffb63847aa2fe6dd10783d3ea63b55ac66f71ad885c20e223709f0d51ed5c6c0d0b093be9e1d165bb8a483a548b67a3f7a1e4580f50e75b306593fa6067ae259d3e297717bd7ff8c8f5b07f2bed89929a9a0321026cf3699524db98e2d18fb2d020300ff39"]]
-ranges = { 0xA4: [410000000, 525000000, 14], 0xA9: [820000000, 1020000000, 17] }
-firmware_update_url = "https://github.com/markqvist/RNode_Firmware/raw/master/Precompiled/rnode_firmware_latest.hex"
+known_keys = [["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100bf831ebd99f43b477caf1a094bec829389da40653e8f1f83fc14bf1b98a3e1cc70e759c213a43f71e5a47eb56a9ca487f241335b3e6ff7cdde0ee0a1c75c698574aeba0485726b6a9dfc046b4188e3520271ee8555a8f405cf21f81f2575771d0b0887adea5dd53c1f594f72c66b5f14904ffc2e72206a6698a490d51ba1105b0203010001"], ["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100e5d46084e445595376bf7efd9c6ccf19d39abbc59afdb763207e4ff68b8d00ebffb63847aa2fe6dd10783d3ea63b55ac66f71ad885c20e223709f0d51ed5c6c0d0b093be9e1d165bb8a483a548b67a3f7a1e4580f50e75b306593fa6067ae259d3e297717bd7ff8c8f5b07f2bed89929a9a0321026cf3699524db98e2d18fb2d020300ff39"]]
+firmware_update_url = "https://github.com/markqvist/RNode_Firmware/raw/master/Precompiled/"
+fw_filename = None
+mapped_model = None
 
 class RNS():
     @staticmethod
@@ -93,6 +95,8 @@ class KISS():
     CMD_STAT_SNR    = 0x24
     CMD_BLINK       = 0x30
     CMD_RANDOM      = 0x40
+    CMD_PLATFORM    = 0x48
+    CMD_MCU         = 0x49
     CMD_FW_VERSION  = 0x50
     CMD_ROM_READ    = 0x51
     CMD_ROM_WRITE   = 0x52
@@ -120,9 +124,23 @@ class KISS():
         return data
 
 class ROM():
+    PLATFORM_AVR   = 0x90
+    PLATFORM_ESP32 = 0x80
+
+    MCU_1284P      = 0x91
+    MCU_2560       = 0x92
+    MCU_ESP32      = 0x81
+
     PRODUCT_RNODE  = 0x03
     MODEL_A4       = 0xA4
     MODEL_A9       = 0xA9
+
+    PRODUCT_TBEAM  = 0xE0
+    MODEL_E4       = 0xE4
+    MODEL_E9       = 0xE9
+    
+    PRODUCT_HMBRW  = 0xF0
+    MODEL_FF       = 0xFF
 
     ADDR_PRODUCT   = 0x00
     ADDR_MODEL     = 0x01
@@ -141,6 +159,34 @@ class ROM():
 
     INFO_LOCK_BYTE = 0x73
     CONF_OK_BYTE   = 0x73
+
+mapped_product = ROM.PRODUCT_RNODE
+products = {
+    ROM.PRODUCT_RNODE: "RNode",
+    ROM.PRODUCT_HMBRW: "Hombrew RNode",
+    ROM.PRODUCT_TBEAM: "LilyGO T-Beam",
+}
+
+platforms = {
+    ROM.PLATFORM_AVR: "AVR",
+    ROM.PLATFORM_ESP32:"ESP32",
+}
+
+mcus = {
+    ROM.MCU_1284P: "ATmega1284P",
+    ROM.MCU_2560:"ATmega2560",
+    ROM.MCU_ESP32:"Espressif Systems ESP32",
+}
+
+models = {
+    0xA4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest.hex"],
+    0xA9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest.hex"],
+    0xF4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest_m2560.hex"],
+    0xF9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest_m2560.hex"],
+    0xE4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_tbeam.zip"],
+    0xE9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_tbeam.zip"],
+    0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)"],
+}
 
 class RNode():
     def __init__(self, serial_instance):
@@ -162,6 +208,8 @@ class RNode():
 
         self.detected = None
 
+        self.platform = None
+        self.mcu = None
         self.eeprom = None
         self.major_version = None
         self.minor_version = None
@@ -189,6 +237,9 @@ class RNode():
         self.conf_txpower = None
         self.conf_frequency = None
         self.conf_bandwidth = None
+
+    def disconnect(self):
+        self.serial.close()
 
     def readLoop(self):
         try:
@@ -287,6 +338,12 @@ class RNode():
                                     self.minor_version = command_buffer[1]
                                     self.updateVersion()
 
+                        elif (command == KISS.CMD_PLATFORM):
+                            self.platform = byte
+
+                        elif (command == KISS.CMD_MCU):
+                            self.mcu = byte
+
                         elif (command == KISS.CMD_TXPOWER):
                             self.r_txpower = byte
                             RNS.log("Radio reporting TX power is "+str(self.r_txpower)+" dBm")
@@ -376,10 +433,10 @@ class RNode():
         self.version = str(self.major_version)+"."+minstr
 
     def detect(self):
-        kiss_command = bytes([KISS.FEND, KISS.CMD_DETECT, KISS.DETECT_REQ, KISS.FEND, KISS.CMD_FW_VERSION, 0x00, KISS.FEND])
+        kiss_command = bytes([KISS.FEND, KISS.CMD_DETECT, KISS.DETECT_REQ, KISS.FEND, KISS.CMD_FW_VERSION, 0x00, KISS.FEND, KISS.CMD_PLATFORM, 0x00, KISS.FEND, KISS.CMD_MCU, 0x00, KISS.FEND])
         written = self.serial.write(kiss_command)
         if written != len(kiss_command):
-            raise IOError("An IO error occurred while configuring spreading factor for "+self(str))
+            raise IOError("An IO error occurred while detecting hardware for "+self(str))
 
     def initRadio(self):
         self.setFrequency()
@@ -464,7 +521,7 @@ class RNode():
         written = self.serial.write(kiss_command)
         if written != len(kiss_command):
             raise IOError("An IO error occurred while restarting device")
-        sleep(1);
+        sleep(2);
 
     def write_eeprom(self, addr, byte):
         write_payload = b"" + bytes([addr, byte])
@@ -476,6 +533,7 @@ class RNode():
 
 
     def download_eeprom(self):
+        self.eeprom = None
         kiss_command = bytes([KISS.FEND, KISS.CMD_ROM_READ, 0x00, KISS.FEND])
         written = self.serial.write(kiss_command)
         if written != len(kiss_command):
@@ -504,14 +562,14 @@ class RNode():
                 self.checksum = b""
 
 
-                self.min_freq = ranges[self.model][0]
-                self.max_freq = ranges[self.model][1]
-                self.max_output = ranges[self.model][2]
+                self.min_freq = models[self.model][0]
+                self.max_freq = models[self.model][1]
+                self.max_output = models[self.model][2]
 
                 try:
-                    self.min_freq = ranges[self.model][0]
-                    self.max_freq = ranges[self.model][1]
-                    self.max_output = ranges[self.model][2]
+                    self.min_freq = models[self.model][0]
+                    self.max_freq = models[self.model][1]
+                    self.max_output = models[self.model][2]
                 except Exception as e:
                     RNS.log("Exception")
                     RNS.log(str(e))
@@ -633,7 +691,25 @@ class RNode():
         else:
             raise IOError("Got invalid response while detecting device")
 
+def rnode_open_serial(port):
+    import serial
+    return serial.Serial(
+        port = port,
+        baudrate = rnode_baudrate,
+        bytesize = 8,
+        parity = serial.PARITY_NONE,
+        stopbits = 1,
+        xonxoff = False,
+        rtscts = False,
+        timeout = 0,
+        inter_byte_timeout = None,
+        write_timeout = None,
+        dsrdtr = False
+    )
+
 def main():
+    global mapped_product, mapped_model, fw_filename
+
     try:
         if not util.find_spec("serial"):
             raise ImportError("Serial module could not be found")
@@ -655,17 +731,20 @@ def main():
         exit()
 
     import serial
+    from serial.tools import list_ports
 
     try:
         parser = argparse.ArgumentParser(description="RNode Configuration and firmware utility. This program allows you to change various settings and startup modes of RNode. It can also flash and update the firmware, and manage device EEPROM.")
         parser.add_argument("-i", "--info", action="store_true", help="Show device info")
+        parser.add_argument("-u", "--update", action="store_true", help="Update firmware to the latest version")
+        parser.add_argument("--nocheck", action="store_true", help="Don't check for firmware updates online, use existing local files if possible")
+        parser.add_argument("-a", "--autoinstall", action="store_true", help="Automatic installation on various supported devices")
         parser.add_argument("-T", "--tnc", action="store_true", help="Switch device to TNC mode")
         parser.add_argument("-N", "--normal", action="store_true", help="Switch device to normal mode")
         parser.add_argument("-b", "--backup", action="store_true", help="Backup EEPROM to file")
         parser.add_argument("-d", "--dump", action="store_true", help="Dump EEPROM to console")
         parser.add_argument("-f", "--flash", action="store_true", help="Flash firmware and bootstrap EEPROM")
         parser.add_argument("-r", "--rom", action="store_true", help="Bootstrap EEPROM without flashing firmware")
-        parser.add_argument("-u", "--update", action="store_true", help="Update firmware")
         parser.add_argument("-k", "--key", action="store_true", help="Generate a new signing key and exit")
         parser.add_argument("-p", "--public", action="store_true", help="Display public part of signing key")
         parser.add_argument("--freq", action="store", metavar="Hz", type=int, default=None, help="Frequency in Hz for TNC mode")
@@ -673,9 +752,12 @@ def main():
         parser.add_argument("--txp", action="store", metavar="dBm", type=int, default=None, help="TX power in dBm for TNC mode")
         parser.add_argument("--sf", action="store", metavar="factor", type=int, default=None, help="Spreading factor for TNC mode (7 - 12)")
         parser.add_argument("--cr", action="store", metavar="rate", type=int, default=None, help="Coding rate for TNC mode (5 - 8)")
-        parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help="Model code for EEPROM bootstrap")
-        parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help="Hardware revision EEPROM bootstrap")
-        parser.add_argument("--nocheck", action="store_true", help="Don't check for firmware updates online")
+
+        parser.add_argument("--platform", action="store", metavar="platform", type=str, default=None, help="Platform specification for device bootstrap")
+        parser.add_argument("--product", action="store", metavar="product", type=str, default=None, help="Product specification for device bootstrap")
+        parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help="Model code for device bootstrap")
+        parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help="Hardware revision for device bootstrap")
+
         parser.add_argument("--eepromwipe", action="store_true", help="Unlock and wipe EEPROM")
         parser.add_argument("--version", action="store_true", help="Print version and exit")
 
@@ -686,7 +768,7 @@ def main():
             print("rnodeconf "+program_version)
             exit(0)
 
-        if args.public or args.key or args.flash or args.rom:
+        if args.public or args.key or args.flash or args.rom or args.autoinstall:
             from cryptography.hazmat.primitives import hashes
             from cryptography.hazmat.backends import default_backend
             from cryptography.hazmat.primitives import serialization
@@ -694,6 +776,202 @@ def main():
             from cryptography.hazmat.primitives.serialization import load_der_private_key
             from cryptography.hazmat.primitives.asymmetric import rsa
             from cryptography.hazmat.primitives.asymmetric import padding
+
+        if args.autoinstall:
+            print("\nHello!\n\nThis guide will help you install the RNode firmware on supported")
+            print("and homebrew devices. Please connect the device you wish to set\nup now. Hit enter when it is connected.")
+            input()
+
+            ports = list_ports.comports()
+            portlist = []
+            for port in ports:
+                portlist.insert(0, port) 
+            
+            pi = 1
+            print("Detected serial ports:")
+            for port in portlist:
+                print("  ["+str(pi)+"] "+str(port.device)+" ("+str(port.product)+", "+str(port.serial_number)+")")
+                pi += 1
+
+            print("\nWhat serial port is your device connected to? ", end="")
+            selected_port = None
+            try:
+                c_port = int(input())
+                if c_port < 1 or c_port > len(ports):
+                    raise ValueError()
+
+                selected_port = portlist[c_port-1]
+            except Exception as e:
+                print("That port does not exist, exiting now.")
+                exit()
+
+            if selected_port == None:
+                print("Could not select port, exiting now.")
+                exit()
+
+            port_path = selected_port.device
+            port_product = selected_port.product
+            port_serialno = selected_port.serial_number
+
+            print("\nOk, using device on "+str(port_path)+" ("+str(port_product)+", "+str(port_serialno)+")")
+
+            print("\nProbing device...")
+
+            try:
+                rnode_serial = rnode_open_serial(port_path)
+            except Exception as e:
+                RNS.log("Could not open the specified serial port. The contained exception was:")
+                RNS.log(str(e))
+                exit()
+
+            rnode = RNode(rnode_serial)
+            thread = threading.Thread(target=rnode.readLoop)
+            thread.setDaemon(True)
+            thread.start()
+
+            try:
+                rnode.device_probe()
+            except Exception as e:
+                RNS.log("No answer from device")
+
+            if rnode.detected:
+                RNS.log("Trying to read EEPROM...")
+                rnode.download_eeprom()
+
+            if rnode.provisioned:
+                print("\nThis device is already installed and provisioned. No further action will")
+                print("be taken. If you wish to completely reinstall this device, you must first")
+                print("wipe the current EEPROM and delete the firmware. See the help for more info.\n\nExiting now.")
+                exit()
+
+            if rnode.detected:
+                print("\nThe device seems to have an RNode firmware installed, but it was not")
+                print("provisioned correctly, or it is corrupt. We are going to reinstall the")
+                print("correct firmware and provision it.")
+            else:
+                print("\nIt looks like this is a fresh device with no RNode firmware.")
+                
+            print("What kind of device is this?\n")
+            print("[1] Original RNode")
+            print("[2] Homebrew RNode")
+            print("[3] LilyGO T-Beam")
+            print("\n? ", end="")
+
+            selected_product = None
+            try:
+                c_dev = int(input())
+                if c_dev < 1 or c_dev > 3:
+                    raise ValueError()
+                elif c_dev == 1:
+                    selected_product = ROM.PRODUCT_RNODE
+                elif c_dev == 2:
+                    selected_product = ROM.PRODUCT_HMBRW
+                elif c_dev == 3:
+                    selected_product = ROM.PRODUCT_TBEAM
+            except Exception as e:
+                print("That device type does not exist, exiting now.")
+                exit()
+
+            selected_platform = None
+            selected_model = None
+            selected_mcu = None
+
+            if selected_product == ROM.PRODUCT_HMBRW:
+                selected_model = ROM.MODEL_FF
+                print("\nWhat kind of microcontroller is your board based on?\n")
+                print("[1] AVR ATmega1284P")
+                print("[2] AVR ATmega2560")
+                print("[3] Espressif Systems ESP32")
+                print("\n? ", end="")
+                try:
+                    c_mcu = int(input())
+                    if c_mcu < 1 or c_mcu > 3:
+                        raise ValueError()
+                    elif c_mcu == 1:
+                        selected_mcu = ROM.MCU_1284P
+                        selected_platform = ROM.PLATFORM_AVR
+                    elif c_mcu == 2:
+                        selected_mcu = ROM.MCU_2560
+                        selected_platform = ROM.PLATFORM_AVR
+                    elif c_mcu == 3:
+                        selected_mcu = ROM.MCU_ESP32
+                        selected_platform = ROM.PLATFORM_ESP32
+                except Exception as e:
+                    print("That MCU type does not exist, exiting now.")
+                    exit()
+
+            elif selected_product == ROM.PRODUCT_RNODE:
+                selected_mcu = ROM.MCU_1284P
+                print("\nWhat model is this RNode?\n")
+                print("[1] RNode 410 - 525 MHz")
+                print("[2] RNode 820 - 1020 MHz")
+                print("\n? ", end="")
+                try:
+                    c_model = int(input())
+                    if c_model < 1 or c_model > 2:
+                        raise ValueError()
+                    elif c_model == 1:
+                        selected_model = ROM.MODEL_A4
+                        selected_platform = ROM.PLATFORM_AVR
+                    elif c_model == 2:
+                        selected_model = ROM.MODEL_A9
+                        selected_platform = ROM.PLATFORM_AVR
+                except Exception as e:
+                    print("That model does not exist, exiting now.")
+                    exit()
+
+            elif selected_product == ROM.PRODUCT_TBEAM:
+                selected_mcu = ROM.MCU_ESP32
+                print("\nWhat band is this T-Beam for?\n")
+                print("[1] 433 MHz")
+                print("[2] 868 MHz")
+                print("[3] 915 MHz")
+                print("[4] 923 MHz")
+                print("\n? ", end="")
+                try:
+                    c_model = int(input())
+                    if c_model < 1 or c_model > 4:
+                        raise ValueError()
+                    elif c_model == 1:
+                        selected_model = ROM.MODEL_E4
+                        selected_platform = ROM.PLATFORM_ESP32
+                    elif c_model > 1:
+                        selected_model = ROM.MODEL_E9
+                        selected_platform = ROM.PLATFORM_ESP32
+                except Exception as e:
+                    print("That band does not exist, exiting now.")
+                    exit()
+
+            print("\nOk, that should be all the information we need. Please confirm the following")
+            print("summary before proceeding. In the next step, the device will be flashed and")
+            print("provisioned, so make that you are satisfied with your choices.\n")
+
+            fw_filename = models[selected_model][4]
+            print("Device type     : "+str(products[selected_product])+" "+str(models[selected_model][3]))
+            print("Platform        : "+str(platforms[selected_platform]))
+            print("Device MCU      : "+str(mcus[selected_mcu]))
+            print("Firmware file   : "+str(fw_filename))
+
+            print("\nIs the above correct? [y/N] ", end="")
+            try:
+                c_ok = input().lower()
+                if c_ok != "y":
+                    raise ValueError()
+            except Exception as e:
+                print("OK, aborting now.")
+                exit()
+
+            args.key = True
+            args.port = selected_port
+            args.platform = selected_platform
+            args.hwrev = 0
+            mapped_model = selected_model
+            mapped_product = selected_product
+            args.update = False
+            args.flash = True
+
+            print("\nDone")
+            exit()
 
         if args.public:
             private_bytes = None
@@ -758,43 +1036,79 @@ def main():
 
             exit()
 
+        def get_flasher_call(platform, fw_filename):
+            from shutil import which
+            if platform == "unzip":
+                flasher = "unzip"
+                if which(flasher) is not None:
+                    return [flasher, "-o", "./update/"+fw_filename, "-d", "./update/"]
+                else:
+                    RNS.log("")
+                    RNS.log("You do not currently have the \""+flasher+"\" program installed on your system.")
+                    RNS.log("Unfortunately, that means we can't proceed, since it is needed to flash your")
+                    RNS.log("board. You can install it via your package manager, for example:")
+                    RNS.log("")
+                    RNS.log("  sudo apt install "+flasher)
+                    RNS.log("")
+                    RNS.log("Please install \""+flasher+"\" and try again.")
+                    exit()
+            elif platform == ROM.PLATFORM_AVR:
+                flasher = "avrdude"
+                if which(flasher) is not None:
+                    return [flasher, "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/"+fw_filename]
+                else:
+                    RNS.log("")
+                    RNS.log("You do not currently have the \""+flasher+"\" program installed on your system.")
+                    RNS.log("Unfortunately, that means we can't proceed, since it is needed to flash your")
+                    RNS.log("board. You can install it via your package manager, for example:")
+                    RNS.log("")
+                    RNS.log("  sudo apt install avrdude")
+                    RNS.log("")
+                    RNS.log("Please install \""+flasher+"\" and try again.")
+                    exit()
+            elif platform == ROM.PLATFORM_ESP32:
+                flasher = "./update/esptool.py" 
+                if which(flasher) is not None:
+                    # esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB
+                    # 0xe000 /home/markqvist/.arduino15/packages/esp32/hardware/esp32/2.0.2/tools/partitions/boot_app0.bin
+                    # 0x1000 /tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.bootloader.bin
+                    # 0x10000 /tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.bin
+                    # 0x8000 /tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.partitions.bin
+                    #
+                    return [
+                        flasher,
+                        "--chip", "esp32",
+                        "--port", args.port,
+                        "--baud", "921600",
+                        "--before", "default_reset",
+                        "--after", "hard_reset",
+                        "write_flash", "-z",
+                        "--flash_mode", "dio",
+                        "--flash_freq", "80m",
+                        "--flash_size", "4MB",
+                        "0xe000", "./update/rnode_firmware_latest_tbeam.boot_app0",
+                        "0x1000", "./update/rnode_firmware_latest_tbeam.bootloader",
+                        "0x10000", "./update/rnode_firmware_latest_tbeam.bin",
+                        "0x8000", "./update/rnode_firmware_latest_tbeam.partitions",
+                    ]
+                else:
+                    RNS.log("")
+                    RNS.log("You do not currently have the \""+flasher+"\" program installed on your system.")
+                    RNS.log("Unfortunately, that means we can't proceed, since it is needed to flash your")
+                    RNS.log("board. You can install it via your package manager, for example:")
+                    RNS.log("")
+                    RNS.log("  sudo apt install esptool")
+                    RNS.log("")
+                    RNS.log("Please install \""+flasher+"\" and try again.")
+                    exit()
+
         if args.port:
-            if args.update:
-                if not args.nocheck:
-                    try:
-                        RNS.log("Downloading latest firmware from GitHub...")
-                        os.makedirs("./update", exist_ok=True)
-                        urlretrieve(firmware_update_url, "update/rnode_update.hex")
-                        RNS.log("Firmware download completed")
-                        if os.path.isfile("./update/rnode_update.hex"):
-                            try:
-                                RNS.log("Updating RNode firmware for device on "+args.port)
-                                from subprocess import call
-                                flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/rnode_update.hex"])
-                                if flash_status == 0:
-                                    RNS.log("Firmware updated")
-                                    args.info = True
-                                else:
-                                    exit()
-
-                            except Exception as e:
-                                RNS.log("Error while updating firmware")
-                                RNS.log(str(e))
-                        else:
-                            RNS.log("Firmware update file not found")
-                            exit()
-
-                    except Exception as e:
-                        RNS.log("Could not download firmware update")
-                        RNS.log("The contained exception was: "+str(e))
-                        exit()
-
             if args.flash:
-                if os.path.isfile("./firmware/rnode_firmware.hex"):
+                if os.path.isfile("./firmware/"+fw_filename):
                     try:
                         RNS.log("Flashing RNode firmware to device on "+args.port)
                         from subprocess import call
-                        flash_status = call(["avrdude", "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:firmware/rnode_firmware.hex"])
+                        flash_status = call(get_flasher_call())
                         if flash_status == 0:
                             RNS.log("Done flashing")
                             args.rom = True
@@ -810,19 +1124,8 @@ def main():
 
             RNS.log("Opening serial port "+args.port+"...")
             try:
-                rnode_serial = serial.Serial(
-                    port = args.port,
-                    baudrate = rnode_baudrate,
-                    bytesize = 8,
-                    parity = serial.PARITY_NONE,
-                    stopbits = 1,
-                    xonxoff = False,
-                    rtscts = False,
-                    timeout = 0,
-                    inter_byte_timeout = None,
-                    write_timeout = None,
-                    dsrdtr = False
-                )
+                rnode_port = args.port
+                rnode_serial = rnode_open_serial(rnode_port)
             except Exception as e:
                 RNS.log("Could not open the specified serial port. The contained exception was:")
                 RNS.log(str(e))
@@ -840,12 +1143,102 @@ def main():
                 print(e)
                 exit()
 
-            RNS.log("Reading EEPROM...")
-            rnode.download_eeprom()
+            if rnode.detected:
+                if rnode.platform == None or rnode.mcu == None:
+                    rnode.platform = ROM.PLATFORM_AVR
+                    rnode.mcu = ROM.MCU_1284P
+
 
             if args.eepromwipe:
                 RNS.log("WARNING: EEPROM is being wiped! Power down device NOW if you do not want this!")
                 rnode.wipe_eeprom()
+                exit()
+
+            RNS.log("Reading EEPROM...")
+            rnode.download_eeprom()
+
+            if rnode.provisioned:
+                fw_filename = models[rnode.model][4]
+
+            if args.update:
+                rnode.disconnect()
+                from subprocess import call
+
+                if not args.nocheck:
+                    try:
+                        RNS.log("Downloading latest firmware from GitHub...")
+                        os.makedirs("./update", exist_ok=True)
+                        urlretrieve(firmware_update_url+fw_filename, "update/"+fw_filename)
+                        RNS.log("Firmware download completed")
+                        if fw_filename.endswith(".zip"):
+                            RNS.log("Extracting firmware...")
+                            unzip_status = call(get_flasher_call("unzip", fw_filename))
+                            if unzip_status == 0:
+                                RNS.log("Firmware extracted")
+                            else:
+                                RNS.log("Could not extract firmware from downloaded zip file")
+                                exit()
+
+                    except Exception as e:
+                        RNS.log("Could not download firmware update")
+                        RNS.log("The contained exception was: "+str(e))
+                        exit()
+                else:
+                    RNS.log("Skipping online check, using local firmware file: "+"./update/"+fw_filename)
+
+                if os.path.isfile("./update/"+fw_filename):
+                    try:
+                        args.info = False
+                        RNS.log("Updating RNode firmware for device on "+args.port)
+                        flash_status = call(get_flasher_call(rnode.platform, fw_filename))
+                        if flash_status == 0:
+                            RNS.log("Flashing new firmware completed")
+                            RNS.log("Opening serial port "+args.port+"...")
+                            try:
+                                rnode_port = args.port
+                                rnode_serial = rnode_open_serial(rnode_port)
+                            except Exception as e:
+                                RNS.log("Could not open the specified serial port. The contained exception was:")
+                                RNS.log(str(e))
+                                exit()
+
+                            rnode = RNode(rnode_serial)
+                            thread = threading.Thread(target=rnode.readLoop)
+                            thread.setDaemon(True)
+                            thread.start()
+
+                            try:
+                                rnode.device_probe()
+                            except Exception as e:
+                                RNS.log("Serial port opened, but RNode did not respond. Is a valid firmware installed?")
+                                print(e)
+                                exit()
+
+                            if rnode.detected:
+                                if rnode.platform == None or rnode.mcu == None:
+                                    rnode.platform = ROM.PLATFORM_AVR
+                                    rnode.mcu = ROM.MCU_1284P
+
+                                RNS.log("Reading EEPROM...")
+                                rnode.download_eeprom()
+
+                                if rnode.provisioned:
+                                    fw_filename = models[rnode.model][4]
+                                    args.info = True
+
+                            if args.info:
+                                RNS.log("")
+                                RNS.log("Firmware update completed successfully")
+                        else:
+                            RNS.log("An error occurred while flashing the new firmware, exiting now.")
+                            exit()
+
+                    except Exception as e:
+                        RNS.log("Error while updating firmware")
+                        RNS.log(str(e))
+                else:
+                    RNS.log("Firmware update file not found")
+                    exit()
 
             if args.dump:
                 RNS.log("EEPROM contents:")
@@ -879,14 +1272,14 @@ def main():
 
                     RNS.log("")
                     RNS.log("Device info:")
-                    RNS.log("\tFirmware version:\t"+rnode.version)
-                    RNS.log("\tProduct code:\t\t"+bytes([rnode.product]).hex())
-                    RNS.log("\tModel code:\t\t"+bytes([rnode.model]).hex())
-                    RNS.log("\tHardware revision:\t"+bytes([rnode.hw_rev]).hex())
-                    RNS.log("\tSerial number:\t\t"+RNS.hexrep(rnode.serialno))
-                    RNS.log("\tFrequency range:\t"+str(rnode.min_freq/1e6)+" MHz - "+str(rnode.max_freq/1e6)+" MHz")
-                    RNS.log("\tMax TX power:\t\t"+str(rnode.max_output)+" dBm")
-                    RNS.log("\tManufactured:\t\t"+timestring)
+                    RNS.log("\tProduct            : "+products[rnode.product]+" "+models[rnode.model][3]+" ("+bytes([rnode.product]).hex()+":"+bytes([rnode.model]).hex()+")")
+                    RNS.log("\tDevice signature   : "+sigstring)
+                    RNS.log("\tFirmware version   : "+rnode.version)
+                    RNS.log("\tHardware revision  : "+str(int(rnode.hw_rev)))
+                    RNS.log("\tSerial number      : "+RNS.hexrep(rnode.serialno))
+                    RNS.log("\tFrequency range    : "+str(rnode.min_freq/1e6)+" MHz - "+str(rnode.max_freq/1e6)+" MHz")
+                    RNS.log("\tMax TX power       : "+str(rnode.max_output)+" dBm")
+                    RNS.log("\tManufactured       : "+timestring)
 
                     if rnode.configured:
                         rnode.bandwidth = rnode.conf_bandwidth
@@ -897,18 +1290,16 @@ def main():
                         rnode.r_cr = rnode.conf_cr
                         rnode.updateBitrate()
                         txp_mw = round(pow(10, (rnode.conf_txpower/10)), 3)
-                        RNS.log("\tDevice signature:\t"+sigstring)
                         RNS.log("");
-                        RNS.log("\tDevice mode:\t\tTNC")
-                        RNS.log("\t  Frequency:\t\t"+str((rnode.conf_frequency/1000000.0))+" MHz")
-                        RNS.log("\t  Bandwidth:\t\t"+str(rnode.conf_bandwidth/1000.0)+" KHz")
-                        RNS.log("\t  TX power:\t\t"+str(rnode.conf_txpower)+" dBm ("+str(txp_mw)+" mW)")
-                        RNS.log("\t  Spreading factor:\t"+str(rnode.conf_sf))
-                        RNS.log("\t  Coding rate:\t\t"+str(rnode.conf_cr))
-                        RNS.log("\t  On-air bitrate:\t"+str(rnode.bitrate_kbps)+" kbps")
+                        RNS.log("\tDevice mode        : TNC")
+                        RNS.log("\t  Frequency        : "+str((rnode.conf_frequency/1000000.0))+" MHz")
+                        RNS.log("\t  Bandwidth        : "+str(rnode.conf_bandwidth/1000.0)+" KHz")
+                        RNS.log("\t  TX power         : "+str(rnode.conf_txpower)+" dBm ("+str(txp_mw)+" mW)")
+                        RNS.log("\t  Spreading factor : "+str(rnode.conf_sf))
+                        RNS.log("\t  Coding rate      : "+str(rnode.conf_cr))
+                        RNS.log("\t  On-air bitrate   : "+str(rnode.bitrate_kbps)+" kbps")
                     else:
-                        RNS.log("\tDevice mode:\t\tNormal (host-controlled)")
-                        RNS.log("\tDevice signature:\t"+sigstring)
+                        RNS.log("\tDevice mode        : Normal (host-controlled)")
 
                     print("")
                     exit()
@@ -942,10 +1333,33 @@ def main():
                     serialno = counter+1
                     model = None
                     hwrev = None
-                    if args.model == "a4":
-                        model = ROM.MODEL_A4
-                    if args.model == "a9":
-                        model = ROM.MODEL_A9
+                    if args.product != None:
+                        if args.product == "03":
+                            mapped_product = ROM.PRODUCT_RNODE
+                        if args.product == "f0":
+                            mapped_product = ROM.PRODUCT_HMBRW
+                        if args.product == "e0":
+                            mapped_product = ROM.PRODUCT_TBEAM
+
+                    if mapped_model != None:
+                        model = mapped_model
+                    else:
+                        if args.model == "a4":
+                            model = ROM.MODEL_A4
+                        elif args.model == "a9":
+                            model = ROM.MODEL_A9
+                        elif args.model == "f4":
+                            model = ROM.MODEL_F4
+                        elif args.model == "f9":
+                            model = ROM.MODEL_F9
+                        elif args.model == "e4":
+                            model = ROM.MODEL_E4
+                        elif args.model == "e9":
+                            model = ROM.MODEL_E9
+                        elif args.model == "ff":
+                            model = ROM.MODEL_FF
+
+
                     if args.hwrev != None and (args.hwrev > 0 and args.hwrev < 256):
                         hwrev = chr(args.hwrev)
 
@@ -961,7 +1375,7 @@ def main():
                             file.write(str(serialno))
                             file.close()
 
-                            info_chunk  = b"" + bytes([ROM.PRODUCT_RNODE, model, ord(hwrev)])
+                            info_chunk  = b"" + bytes([mapped_product, model, ord(hwrev)])
                             info_chunk += serial_bytes
                             info_chunk += time_bytes
                             digest = hashes.Hash(hashes.MD5(), backend=default_backend())
@@ -1003,8 +1417,9 @@ def main():
 
 
                             RNS.log("Bootstrapping device EEPROM...")
+                            rnode.hard_reset()
 
-                            rnode.write_eeprom(ROM.ADDR_PRODUCT, ROM.PRODUCT_RNODE)
+                            rnode.write_eeprom(ROM.ADDR_PRODUCT, mapped_product)
                             time.sleep(0.006)
                             rnode.write_eeprom(ROM.ADDR_MODEL, model)
                             time.sleep(0.006)
@@ -1038,9 +1453,15 @@ def main():
                             rnode.write_eeprom(ROM.ADDR_INFO_LOCK, ROM.INFO_LOCK_BYTE)
 
                             RNS.log("EEPROM written! Validating...")
+
+                            if rnode.platform == ROM.PLATFORM_ESP32:
+                                RNS.log("Waiting for ESP32 reset...")
+                                time.sleep(5)
+
                             rnode.download_eeprom()
                             if rnode.provisioned:
                                 RNS.log("EEPROM Bootstrapping successful!")
+                                rnode.hard_reset()
                                 try:
                                     os.makedirs("./firmware/device_db/", exist_ok=True)
                                     file = open("./firmware/device_db/"+serial_bytes.hex(), "wb")

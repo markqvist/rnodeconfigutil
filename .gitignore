@@ -4,6 +4,10 @@ firmware/*.key*
 firmware/*.counter
 firmware/device_db
 update/*.hex
+update/*.zip
+update/*.bin
+update/*_tbeam*
+update/esptool.py
 eeprom/*.eeprom
 bootstrap
 bootloader.sh
