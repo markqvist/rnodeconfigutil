@@ -947,6 +947,7 @@ def main():
             print("provisioned, so make that you are satisfied with your choices.\n")
 
             fw_filename = models[selected_model][4]
+            print("Serial port     : "+str(selected_port.device))
             print("Device type     : "+str(products[selected_product])+" "+str(models[selected_model][3]))
             print("Platform        : "+str(platforms[selected_platform]))
             print("Device MCU      : "+str(mcus[selected_mcu]))
@@ -962,16 +963,26 @@ def main():
                 exit()
 
             args.key = True
-            args.port = selected_port
+            args.port = selected_port.device
             args.platform = selected_platform
-            args.hwrev = 0
+            args.hwrev = 1
             mapped_model = selected_model
             mapped_product = selected_product
             args.update = False
             args.flash = True
 
-            print("\nDone")
-            exit()
+            # TODO: Download firmware file from github here
+            try:
+                RNS.log("Downloading latest frimware from GitHub...")
+                os.makedirs("./update", exist_ok=True)
+                urlretrieve(firmware_update_url+fw_filename, "update/"+fw_filename)
+                RNS.log("Firmware download completed")
+            except Exception as e:
+                RNS.log("Could not download firmware package")
+                RNS.log("The contained exception was: "+str(e))
+                exit()
+
+            rnode.disconnect()
 
         if args.public:
             private_bytes = None
@@ -1021,8 +1032,9 @@ def main():
             os.makedirs("./firmware", exist_ok=True)
             if os.path.isdir("./firmware"):
                 if os.path.isfile("./firmware/signing.key"):
-                    RNS.log("Signing key already exists, not overwriting!")
-                    RNS.log("Manually delete this key to create a new one.")
+                    if not args.autoinstall:
+                        RNS.log("Signing key already exists, not overwriting!")
+                        RNS.log("Manually delete this key to create a new one.")
                 else:
                     file = open("./firmware/signing.key", "wb")
                     file.write(private_bytes)
@@ -1034,7 +1046,8 @@ def main():
             else:
                 RNS.log("The firmware directory does not exist, can't write key!")
 
-            exit()
+            if not args.autoinstall:
+                exit()
 
         def get_flasher_call(platform, fw_filename):
             from shutil import which
@@ -1069,12 +1082,6 @@ def main():
             elif platform == ROM.PLATFORM_ESP32:
                 flasher = "./update/esptool.py" 
                 if which(flasher) is not None:
-                    # esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size 4MB
-                    # 0xe000 /home/markqvist/.arduino15/packages/esp32/hardware/esp32/2.0.2/tools/partitions/boot_app0.bin
-                    # 0x1000 /tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.bootloader.bin
-                    # 0x10000 /tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.bin
-                    # 0x8000 /tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.partitions.bin
-                    #
                     return [
                         flasher,
                         "--chip", "esp32",
@@ -1104,14 +1111,32 @@ def main():
 
         if args.port:
             if args.flash:
-                if os.path.isfile("./firmware/"+fw_filename):
+                from subprocess import call
+                if args.autoinstall:
+                    fw_src = "./update/"
+                else:
+                    fw_src = "./firmware/"
+
+                if os.path.isfile(fw_src+fw_filename):
                     try:
+                        if fw_filename.endswith(".zip"):
+                            RNS.log("Extracting firmware...")
+                            unzip_status = call(get_flasher_call("unzip", fw_filename))
+                            if unzip_status == 0:
+                                RNS.log("Firmware extracted")
+                            else:
+                                RNS.log("Could not extract firmware from downloaded zip file")
+                                exit()
+
                         RNS.log("Flashing RNode firmware to device on "+args.port)
                         from subprocess import call
-                        flash_status = call(get_flasher_call())
+                        flash_status = call(get_flasher_call(args.platform, fw_filename))
                         if flash_status == 0:
                             RNS.log("Done flashing")
                             args.rom = True
+                            if args.platform == ROM.PLATFORM_ESP32:
+                                RNS.log("Waiting for ESP32 reset...")
+                                time.sleep(5)
                         else:
                             exit()
 
@@ -1462,6 +1487,8 @@ def main():
                             if rnode.provisioned:
                                 RNS.log("EEPROM Bootstrapping successful!")
                                 rnode.hard_reset()
+                                if args.autoinstall:
+                                    RNS.log("RNode Firmware autoinstallation complete!")
                                 try:
                                     os.makedirs("./firmware/device_db/", exist_ok=True)
                                     file = open("./firmware/device_db/"+serial_bytes.hex(), "wb")

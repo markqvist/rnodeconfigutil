@@ -2,6 +2,7 @@
 firmware/*.hex
 firmware/*.key*
 firmware/*.counter
+firmware/*_latest*
 firmware/device_db
 update/*.hex
 update/*.zip
