@@ -35,6 +35,8 @@ from urllib.request import urlretrieve
 from importlib import util
 
 program_version = "1.1.0"
+eth_addr = "0x81F7B979fEa6134bA9FD5c701b3501A2e61E897a"
+btc_addr = "3CPmacGm34qYvR6XWLVEJmi2aNe3PZqUuq"
 
 rnode = None
 rnode_serial = None
@@ -686,7 +688,7 @@ class RNode():
         sleep(0.1)
         if self.detected == True:
             RNS.log("Device connected")
-            RNS.log("Firmware version: "+self.version)
+            RNS.log("Current firmware version: "+self.version)
             return True
         else:
             raise IOError("Got invalid response while detecting device")
@@ -763,6 +765,14 @@ def main():
 
         parser.add_argument("port", nargs="?", default=None, help="serial port where RNode is attached", type=str)
         args = parser.parse_args()
+
+        def print_donation_block():
+            print("  Ethereum : "+eth_addr)
+            print("  Bitcoin  : "+btc_addr)
+            print("  Ko-Fi    : https://ko-fi.com/markqvist")
+            print("")
+            print("  Info     : https://unsigned.io/")
+            print("  Code     : https://github.com/markqvist")
 
         if args.version:
             print("rnodeconf "+program_version)
@@ -896,6 +906,8 @@ def main():
                     elif c_mcu == 3:
                         selected_mcu = ROM.MCU_ESP32
                         selected_platform = ROM.PLATFORM_ESP32
+                    selected_model = ROM.MODEL_FF
+
                 except Exception as e:
                     print("That MCU type does not exist, exiting now.")
                     exit()
@@ -942,11 +954,35 @@ def main():
                     print("That band does not exist, exiting now.")
                     exit()
 
+            if selected_model != ROM.MODEL_FF:
+                fw_filename = models[selected_model][4]
+            else:
+                if selected_platform == ROM.PLATFORM_AVR:
+                    if selected_mcu == ROM.MCU_1284P:
+                        fw_filename = "rnode_firmware_latest.hex"
+                    elif selected_mcu == ROM.MCU_2560:
+                        # This variant is not released yet
+                        #fw_filename = "rnode_firmware_latest_m2560.hex"
+                        fw_filename = None
+                elif selected_platform == ROM.PLATFORM_ESP32:
+                    # This variant is not released yet
+                    #fw_filename = "rnode_firmware_latest_esp32.zip"
+                    fw_filename = None
+            
+            if fw_filename == None:
+                print("")
+                print("Sorry, no firmware for your board currently exists.")
+                print("Help making it a reality by contributing code or by")
+                print("donating to the project.")
+                print("")
+                print_donation_block()
+                print("")
+                exit()
+
             print("\nOk, that should be all the information we need. Please confirm the following")
             print("summary before proceeding. In the next step, the device will be flashed and")
             print("provisioned, so make that you are satisfied with your choices.\n")
 
-            fw_filename = models[selected_model][4]
             print("Serial port     : "+str(selected_port.device))
             print("Device type     : "+str(products[selected_product])+" "+str(models[selected_model][3]))
             print("Platform        : "+str(platforms[selected_platform]))
@@ -1183,7 +1219,20 @@ def main():
             rnode.download_eeprom()
 
             if rnode.provisioned:
-                fw_filename = models[rnode.model][4]
+                if rnode.model != ROM.MODEL_FF:
+                    fw_filename = models[rnode.model][4]
+                else:
+                    if rnode.platform == ROM.PLATFORM_AVR:
+                        if rnode.mcu == ROM.MCU_1284P:
+                            fw_filename = "rnode_firmware_latest.hex"
+                        elif rnode.mcu == ROM.MCU_2560:
+                            # This variant is not released yet
+                            #fw_filename = "rnode_firmware_latest_m2560.hex"
+                            fw_filename = None
+                    elif rnode.platform == ROM.PLATFORM_ESP32:
+                        # This variant is not released yet
+                        #fw_filename = "rnode_firmware_latest_esp32.zip"
+                        fw_filename = None
 
             if args.update:
                 rnode.disconnect()
@@ -1248,7 +1297,10 @@ def main():
                                 rnode.download_eeprom()
 
                                 if rnode.provisioned:
-                                    fw_filename = models[rnode.model][4]
+                                    if rnode.model != ROM.MODEL_FF:
+                                        fw_filename = models[rnode.model][4]
+                                    else:
+                                        fw_filename = None
                                     args.info = True
 
                             if args.info:
@@ -1488,7 +1540,16 @@ def main():
                                 RNS.log("EEPROM Bootstrapping successful!")
                                 rnode.hard_reset()
                                 if args.autoinstall:
-                                    RNS.log("RNode Firmware autoinstallation complete!")
+                                    print("")
+                                    print("RNode Firmware autoinstallation complete!")
+                                    print("")
+                                    print("Thank you for using this utility! Please help the project by")
+                                    print("contributing code and reporting bugs, or by donating!")
+                                    print("")
+                                    print("Your contributions and donations directly further the realisation")
+                                    print("of truly open, free and resilient communications systems.")
+                                    print("")
+                                    print_donation_block()
                                 try:
                                     os.makedirs("./firmware/device_db/", exist_ok=True)
                                     file = open("./firmware/device_db/"+serial_bytes.hex(), "wb")
