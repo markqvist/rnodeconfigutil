@@ -34,7 +34,7 @@ import math
 from urllib.request import urlretrieve
 from importlib import util
 
-program_version = "1.1.0"
+program_version = "1.1.1"
 eth_addr = "0x81F7B979fEa6134bA9FD5c701b3501A2e61E897a"
 btc_addr = "3CPmacGm34qYvR6XWLVEJmi2aNe3PZqUuq"
 
@@ -763,32 +763,34 @@ def main():
     from serial.tools import list_ports
 
     try:
-        parser = argparse.ArgumentParser(description="RNode Configuration and firmware utility. This program allows you to change various settings and startup modes of RNode. It can also flash and update the firmware, and manage device EEPROM.")
+        parser = argparse.ArgumentParser(description="RNode Configuration and firmware utility. This program allows you to change various settings and startup modes of RNode. It can also install, flash and update the firmware on supported devices.")
         parser.add_argument("-i", "--info", action="store_true", help="Show device info")
+        parser.add_argument("-a", "--autoinstall", action="store_true", help="Automatic installation on various supported devices")
         parser.add_argument("-u", "--update", action="store_true", help="Update firmware to the latest version")
         parser.add_argument("--nocheck", action="store_true", help="Don't check for firmware updates online, use existing local files if possible")
-        parser.add_argument("-a", "--autoinstall", action="store_true", help="Automatic installation on various supported devices")
-        parser.add_argument("-T", "--tnc", action="store_true", help="Switch device to TNC mode")
         parser.add_argument("-N", "--normal", action="store_true", help="Switch device to normal mode")
-        parser.add_argument("-b", "--backup", action="store_true", help="Backup EEPROM to file")
-        parser.add_argument("-d", "--dump", action="store_true", help="Dump EEPROM to console")
-        parser.add_argument("-f", "--flash", action="store_true", help="Flash firmware and bootstrap EEPROM")
-        parser.add_argument("-r", "--rom", action="store_true", help="Bootstrap EEPROM without flashing firmware")
-        parser.add_argument("-k", "--key", action="store_true", help="Generate a new signing key and exit")
-        parser.add_argument("-p", "--public", action="store_true", help="Display public part of signing key")
+        parser.add_argument("-T", "--tnc", action="store_true", help="Switch device to TNC mode")
+
         parser.add_argument("--freq", action="store", metavar="Hz", type=int, default=None, help="Frequency in Hz for TNC mode")
         parser.add_argument("--bw", action="store", metavar="Hz", type=int, default=None, help="Bandwidth in Hz for TNC mode")
         parser.add_argument("--txp", action="store", metavar="dBm", type=int, default=None, help="TX power in dBm for TNC mode")
         parser.add_argument("--sf", action="store", metavar="factor", type=int, default=None, help="Spreading factor for TNC mode (7 - 12)")
         parser.add_argument("--cr", action="store", metavar="rate", type=int, default=None, help="Coding rate for TNC mode (5 - 8)")
 
-        parser.add_argument("--platform", action="store", metavar="platform", type=str, default=None, help="Platform specification for device bootstrap")
-        parser.add_argument("--product", action="store", metavar="product", type=str, default=None, help="Product specification for device bootstrap")
-        parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help="Model code for device bootstrap")
-        parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help="Hardware revision for device bootstrap")
-
+        parser.add_argument("-b", "--backup", action="store_true", help="Backup EEPROM to file")
+        parser.add_argument("-d", "--dump", action="store_true", help="Dump EEPROM to console")
         parser.add_argument("--eepromwipe", action="store_true", help="Unlock and wipe EEPROM")
-        parser.add_argument("--version", action="store_true", help="Print version and exit")
+
+        parser.add_argument("--version", action="store_true", help="Print program version and exit")
+
+        parser.add_argument("-f", "--flash", action="store_true", help=argparse.SUPPRESS) # Flash firmware and bootstrap EEPROM
+        parser.add_argument("-r", "--rom", action="store_true", help=argparse.SUPPRESS) # Bootstrap EEPROM without flashing firmware
+        parser.add_argument("-k", "--key", action="store_true", help=argparse.SUPPRESS) # Generate a new signing key and exit
+        parser.add_argument("-p", "--public", action="store_true", help=argparse.SUPPRESS) # Display public part of signing key
+        parser.add_argument("--platform", action="store", metavar="platform", type=str, default=None, help=argparse.SUPPRESS) # Platform specification for device bootstrap
+        parser.add_argument("--product", action="store", metavar="product", type=str, default=None, help=argparse.SUPPRESS) # Product specification for device bootstrap
+        parser.add_argument("--model", action="store", metavar="model", type=str, default=None, help=argparse.SUPPRESS) # Model code for device bootstrap
+        parser.add_argument("--hwrev", action="store", metavar="revision", type=int, default=None, help=argparse.SUPPRESS) # Hardware revision for device bootstrap
 
         parser.add_argument("port", nargs="?", default=None, help="serial port where RNode is attached", type=str)
         args = parser.parse_args()
