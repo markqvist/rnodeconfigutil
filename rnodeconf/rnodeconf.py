@@ -190,6 +190,8 @@ models = {
     0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)"],
 }
 
+squashvw = False
+
 class RNode():
     def __init__(self, serial_instance):
         self.serial = serial_instance
@@ -549,6 +551,7 @@ class RNode():
             self.parse_eeprom()
 
     def parse_eeprom(self):
+        global squashvw;
         try:
             if self.eeprom[ROM.ADDR_INFO_LOCK] == ROM.INFO_LOCK_BYTE:
                 from cryptography.hazmat.primitives import hashes
@@ -665,21 +668,30 @@ class RNode():
                         RNS.log("Device signature validated")
                     else:
                         RNS.log("Device signature validation failed")
-                        RNS.log("")
-                        RNS.log("WARNING! This device is NOT verified and should NOT be trusted")
-                        RNS.log("unless you produced it yourself and flashed a firmware downloaded")
-                        RNS.log("as binaries or compiled from source from one of the following URLs:")
-                        RNS.log("")
-                        RNS.log("   https://unsigned.io/rnode")
-                        RNS.log("   https://github.com/markqvist/rnode_firmware")
-                        RNS.log("")
-                        RNS.log("Proceed at your own risk and responsibility. If you created this")
-                        RNS.log("device yourself, please read the documentation on how to create")
-                        RNS.log("your own signing key to avoid this warning.")
-                        RNS.log("")
-                        RNS.log("You can reflash and bootstrap this device to a verifiable state")
-                        RNS.log("by using this utility. Read the program help for more info.")
-                        RNS.log("")
+                        if not squashvw:
+                            print("     ")
+                            print("     WARNING! This device is NOT verifiable and should NOT be trusted.")
+                            print("     Someone could have added privacy-breaking or malicious code to it.")
+                            print("     ")
+                            print("     Proceed at your own risk and responsibility! If you created this")
+                            print("     device yourself, please read the documentation on how to sign your")
+                            print("     device to avoid this warning.")
+                            print("     ")
+                            print("     Always use a firmware downloaded as binaries or compiled from source")
+                            print("     from one of the following locations:")
+                            print("     ")
+                            print("        https://unsigned.io/rnode")
+                            print("        https://github.com/markqvist/rnode_firmware")
+                            print("     ")
+                            print("     You can reflash and bootstrap this device to a verifiable state")
+                            print("     by using this utility. It is recommended to do so NOW!")
+                            print("     ")
+                            print("     To initialise this device to a verifiable state, please run:")
+                            print("     ")
+                            print("              rnodeconf "+str(self.serial.name)+" --autoinstall")
+                            print("")
+
+
 
                 if self.eeprom[ROM.ADDR_CONF_OK] == ROM.CONF_OK_BYTE:
                     self.configured = True
@@ -807,6 +819,9 @@ def main():
             print("and homebrew devices. Please connect the device you wish to set\nup now. Hit enter when it is connected.")
             input()
 
+            global squashvw
+            squashvw = True
+
             ports = list_ports.comports()
             portlist = []
             for port in ports:
@@ -863,10 +878,10 @@ def main():
                 RNS.log("Trying to read EEPROM...")
                 rnode.download_eeprom()
 
-            if rnode.provisioned:
+            if rnode.provisioned and rnode.signature_valid:
                 print("\nThis device is already installed and provisioned. No further action will")
                 print("be taken. If you wish to completely reinstall this device, you must first")
-                print("wipe the current EEPROM and delete the firmware. See the help for more info.\n\nExiting now.")
+                print("wipe the current EEPROM. See the help for more info.\n\nExiting now.")
                 exit()
 
             if rnode.detected:
@@ -1091,9 +1106,10 @@ def main():
                     file.write(private_bytes)
                     file.close()
 
-                    RNS.log("Wrote signing key")
-                    RNS.log("Public key:")
-                    RNS.log(RNS.hexrep(public_bytes, delimit=False))
+                    if not squashvw:
+                        RNS.log("Wrote signing key")
+                        RNS.log("Public key:")
+                        RNS.log(RNS.hexrep(public_bytes, delimit=False))
             else:
                 RNS.log("The firmware directory does not exist, can't write key!")
 
@@ -1401,11 +1417,25 @@ def main():
                     exit()
 
             if args.rom:
-                if rnode.provisioned:
+                if rnode.provisioned and not args.autoinstall:
                     RNS.log("EEPROM bootstrap was requested, but a valid EEPROM was already present.")
                     RNS.log("No changes are being made.")
                     exit()
+
                 else:
+                    if rnode.signature_valid:
+                        RNS.log("EEPROM bootstrap was requested, but a valid EEPROM was already present.")
+                        RNS.log("No changes are being made.")
+                        exit()
+                    else:
+                        RNS.log("Clearing old EEPROM, this will take about 15 seconds...")
+                        rnode.wipe_eeprom()
+                        if rnode.platform == ROM.PLATFORM_ESP32:
+                            RNS.log("Waiting for ESP32 reset...")
+                            time.sleep(6)
+                        else:
+                            time.sleep(3)
+
                     os.makedirs("./firmware", exist_ok=True)
                     counter = None
                     counter_path = "./firmware/serial.counter"
@@ -1558,6 +1588,10 @@ def main():
                                     print("")
                                     print("RNode Firmware autoinstallation complete!")
                                     print("")
+                                    print("To use your device with Reticulum, read the documetation at:")
+                                    print("")
+                                    print("https://markqvist.github.io/Reticulum/manual/gettingstartedfast.html")
+                                    print("")
                                     print("Thank you for using this utility! Please help the project by")
                                     print("contributing code and reporting bugs, or by donating!")
                                     print("")
@@ -1565,6 +1599,7 @@ def main():
                                     print("of truly open, free and resilient communications systems.")
                                     print("")
                                     print_donation_block()
+                                    print("")
                                 try:
                                     os.makedirs("./firmware/device_db/", exist_ok=True)
                                     file = open("./firmware/device_db/"+serial_bytes.hex(), "wb")
