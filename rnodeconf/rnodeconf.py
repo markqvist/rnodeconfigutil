@@ -665,6 +665,21 @@ class RNode():
                         RNS.log("Device signature validated")
                     else:
                         RNS.log("Device signature validation failed")
+                        RNS.log("")
+                        RNS.log("WARNING! This device is NOT verified and should NOT be trusted")
+                        RNS.log("unless you produced it yourself and flashed a firmware downloaded")
+                        RNS.log("as binaries or compiled from source from one of the following URLs:")
+                        RNS.log("")
+                        RNS.log("   https://unsigned.io/rnode")
+                        RNS.log("   https://github.com/markqvist/rnode_firmware")
+                        RNS.log("")
+                        RNS.log("Proceed at your own risk and responsibility. If you created this")
+                        RNS.log("device yourself, please read the documentation on how to create")
+                        RNS.log("your own signing key to avoid this warning.")
+                        RNS.log("")
+                        RNS.log("You can reflash and bootstrap this device to a verifiable state")
+                        RNS.log("by using this utility. Read the program help for more info.")
+                        RNS.log("")
 
                 if self.eeprom[ROM.ADDR_CONF_OK] == ROM.CONF_OK_BYTE:
                     self.configured = True
