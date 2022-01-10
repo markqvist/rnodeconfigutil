@@ -34,7 +34,7 @@ import math
 from urllib.request import urlretrieve
 from importlib import util
 
-program_version = "1.1.1"
+program_version = "1.1.2"
 eth_addr = "0x81F7B979fEa6134bA9FD5c701b3501A2e61E897a"
 btc_addr = "3CPmacGm34qYvR6XWLVEJmi2aNe3PZqUuq"
 
@@ -255,7 +255,12 @@ class RNode():
             last_read_ms = int(time.time()*1000)
 
             while self.serial.is_open:
-                if self.serial.in_waiting:
+                try:
+                    data_waiting = self.serial.in_waiting
+                except Exception as e:
+                    data_waiting = False
+
+                if data_waiting:
                     byte = ord(self.serial.read(1))
                     last_read_ms = int(time.time()*1000)
 
