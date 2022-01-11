@@ -915,6 +915,12 @@ def main():
                     selected_product = ROM.PRODUCT_HMBRW
                 elif c_dev == 3:
                     selected_product = ROM.PRODUCT_TBEAM
+                    print("\nImportant! Using RNode firmware on T-Beam devices should currently be")
+                    print("considered experimental. It is not intended for production or critical use.")
+                    print("The currently supplied firmware is provided AS-IS as a courtesey to those")
+                    print("who would like to experiment with it. If you want any degree of reliability,")
+                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    input()
             except Exception as e:
                 print("That device type does not exist, exiting now.")
                 exit()
