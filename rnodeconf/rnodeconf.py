@@ -1192,10 +1192,19 @@ def main():
         if args.port:
             if args.flash:
                 from subprocess import call
+                
+                if fw_filename == None:
+                    fw_filename = "rnode_firmware.hex"
+
+                if args.platform == None:
+                    args.platform = ROM.PLATFORM_AVR
+
                 if args.autoinstall:
                     fw_src = "./update/"
                 else:
-                    fw_src = "./firmware/"
+                    import shutil
+                    shutil.copy("./firmware/"+fw_filename, "./update/"+fw_filename)
+                    fw_src = "./update/"
 
                 if os.path.isfile(fw_src+fw_filename):
                     try:
@@ -1441,8 +1450,10 @@ def main():
                         RNS.log("No changes are being made.")
                         exit()
                     else:
-                        RNS.log("Clearing old EEPROM, this will take about 15 seconds...")
-                        rnode.wipe_eeprom()
+                        if args.autoinstall:
+                            RNS.log("Clearing old EEPROM, this will take about 15 seconds...")
+                            rnode.wipe_eeprom()
+                            
                         if rnode.platform == ROM.PLATFORM_ESP32:
                             RNS.log("Waiting for ESP32 reset...")
                             time.sleep(6)
