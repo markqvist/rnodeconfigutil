@@ -829,38 +829,56 @@ def main():
             global squashvw
             squashvw = True
 
-            ports = list_ports.comports()
-            portlist = []
-            for port in ports:
-                portlist.insert(0, port) 
-            
-            pi = 1
-            print("Detected serial ports:")
-            for port in portlist:
-                print("  ["+str(pi)+"] "+str(port.device)+" ("+str(port.product)+", "+str(port.serial_number)+")")
-                pi += 1
-
-            print("\nWhat serial port is your device connected to? ", end="")
             selected_port = None
-            try:
-                c_port = int(input())
-                if c_port < 1 or c_port > len(ports):
-                    raise ValueError()
+            if not args.port:
+                ports = list_ports.comports()
+                portlist = []
+                for port in ports:
+                    portlist.insert(0, port) 
+                
+                pi = 1
+                print("Detected serial ports:")
+                for port in portlist:
+                    print("  ["+str(pi)+"] "+str(port.device)+" ("+str(port.product)+", "+str(port.serial_number)+")")
+                    pi += 1
 
-                selected_port = portlist[c_port-1]
-            except Exception as e:
-                print("That port does not exist, exiting now.")
-                exit()
+                print("\nWhat serial port is your device connected to? ", end="")
+                try:
+                    c_port = int(input())
+                    if c_port < 1 or c_port > len(ports):
+                        raise ValueError()
 
-            if selected_port == None:
-                print("Could not select port, exiting now.")
-                exit()
+                    selected_port = portlist[c_port-1]
+                except Exception as e:
+                    print("That port does not exist, exiting now.")
+                    exit()
 
-            port_path = selected_port.device
-            port_product = selected_port.product
-            port_serialno = selected_port.serial_number
+                if selected_port == None:
+                    print("Could not select port, exiting now.")
+                    exit()
 
-            print("\nOk, using device on "+str(port_path)+" ("+str(port_product)+", "+str(port_serialno)+")")
+                port_path = selected_port.device
+                port_product = selected_port.product
+                port_serialno = selected_port.serial_number
+
+                print("\nOk, using device on "+str(port_path)+" ("+str(port_product)+", "+str(port_serialno)+")")
+
+            else:
+                ports = list_ports.comports()
+
+                for port in ports:
+                    if port.device == args.port:
+                        selected_port = port
+
+                if selected_port == None:
+                    print("Could not find specified port "+str(args.port)+", exiting now")
+                    exit()
+
+                port_path = selected_port.device
+                port_product = selected_port.product
+                port_serialno = selected_port.serial_number
+
+                print("\nUsing device on "+str(port_path))
 
             print("\nProbing device...")
 
@@ -915,11 +933,14 @@ def main():
                     selected_product = ROM.PRODUCT_HMBRW
                 elif c_dev == 3:
                     selected_product = ROM.PRODUCT_TBEAM
-                    print("\nImportant! Using RNode firmware on T-Beam devices should currently be")
+                    print("")
+                    print("---------------------------------------------------------------------------")
+                    print("Important! Using RNode firmware on T-Beam devices should currently be")
                     print("considered experimental. It is not intended for production or critical use.")
                     print("The currently supplied firmware is provided AS-IS as a courtesey to those")
                     print("who would like to experiment with it. If you want any degree of reliability,")
                     print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("---------------------------------------------------------------------------")
                     input()
             except Exception as e:
                 print("That device type does not exist, exiting now.")
