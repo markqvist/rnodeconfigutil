@@ -183,11 +183,9 @@ mcus = {
 models = {
     0xA4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest.hex"],
     0xA9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest.hex"],
-    0xF4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest_m2560.hex"],
-    0xF9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest_m2560.hex"],
     0xE4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_tbeam.zip"],
     0xE9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_tbeam.zip"],
-    0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)"],
+    0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)", None],
 }
 
 squashvw = False
@@ -1025,12 +1023,10 @@ def main():
                     if selected_mcu == ROM.MCU_1284P:
                         fw_filename = "rnode_firmware_latest.hex"
                     elif selected_mcu == ROM.MCU_2560:
-                        # This variant is not released yet
-                        #fw_filename = "rnode_firmware_latest_m2560.hex"
-                        fw_filename = None
+                        fw_filename = "rnode_firmware_latest_m2560.hex"
                 elif selected_platform == ROM.PLATFORM_ESP32:
                     # This variant is not released yet
-                    #fw_filename = "rnode_firmware_latest_esp32.zip"
+                    #fw_filename = "rnode_firmware_latest_esp32_generic.zip"
                     fw_filename = None
             
             if fw_filename == None:
@@ -1300,9 +1296,7 @@ def main():
                         if rnode.mcu == ROM.MCU_1284P:
                             fw_filename = "rnode_firmware_latest.hex"
                         elif rnode.mcu == ROM.MCU_2560:
-                            # This variant is not released yet
-                            #fw_filename = "rnode_firmware_latest_m2560.hex"
-                            fw_filename = None
+                            fw_filename = "rnode_firmware_latest_m2560.hex"
                     elif rnode.platform == ROM.PLATFORM_ESP32:
                         # This variant is not released yet
                         #fw_filename = "rnode_firmware_latest_esp32.zip"
@@ -1515,10 +1509,11 @@ def main():
                             model = ROM.MODEL_A4
                         elif args.model == "a9":
                             model = ROM.MODEL_A9
-                        elif args.model == "f4":
-                            model = ROM.MODEL_F4
-                        elif args.model == "f9":
-                            model = ROM.MODEL_F9
+                        # TODO: Remove, no more homebrew model differentiation
+                        # elif args.model == "f4":
+                        #     model = ROM.MODEL_F4
+                        # elif args.model == "f9":
+                        #     model = ROM.MODEL_F9
                         elif args.model == "e4":
                             model = ROM.MODEL_E4
                         elif args.model == "e9":
