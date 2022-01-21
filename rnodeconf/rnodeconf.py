@@ -929,6 +929,15 @@ def main():
                     selected_product = ROM.PRODUCT_RNODE
                 elif c_dev == 2:
                     selected_product = ROM.PRODUCT_HMBRW
+                    print("")
+                    print("---------------------------------------------------------------------------")
+                    print("Important! Using RNode firmware on homebrew devices should currently be")
+                    print("considered experimental. It is not intended for production or critical use.")
+                    print("The currently supplied firmware is provided AS-IS as a courtesey to those")
+                    print("who would like to experiment with it. If you want any degree of reliability,")
+                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("---------------------------------------------------------------------------")
+                    input()
                 elif c_dev == 3:
                     selected_product = ROM.PRODUCT_TBEAM
                     print("")
@@ -1028,6 +1037,21 @@ def main():
                     # This variant is not released yet
                     #fw_filename = "rnode_firmware_latest_esp32_generic.zip"
                     fw_filename = None
+                    print("\nWhat kind of ESP32 board is this?\n")
+                    print("[1] Adafruit Feather ESP32 (HUZZAH32)")
+                    print("[2] Generic ESP32 board")
+                    print("\n? ", end="")
+                    try:
+                        c_eboard = int(input())
+                        if c_eboard < 1 or c_eboard > 2:
+                            raise ValueError()
+                        elif c_eboard == 1:
+                            fw_filename = "rnode_firmware_latest_featheresp32.zip"
+                        elif c_eboard == 2:
+                            fw_filename = "rnode_firmware_latest_esp32_generic.zip"
+                    except Exception as e:
+                        print("That ESP32 board does not exist, exiting now.")
+                        exit()
             
             if fw_filename == None:
                 print("")
@@ -1165,7 +1189,12 @@ def main():
             elif platform == ROM.PLATFORM_AVR:
                 flasher = "avrdude"
                 if which(flasher) is not None:
-                    return [flasher, "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/"+fw_filename]
+                    # avrdude -C/home/markqvist/.arduino15/packages/arduino/tools/avrdude/6.3.0-arduino17/etc/avrdude.conf -q -q -V -patmega2560 -cwiring -P/dev/ttyACM0 -b115200 -D -Uflash:w:/tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.hex:i
+                    # avrdude -q -q -V -patmega2560 -cwiring -P/dev/ttyACM0 -b115200 -D -Uflash:w:/tmp/arduino-sketch-0E260F46C421A84A7CBAD48E859C8E64/RNode_Firmware.ino.hex:i
+                    if fw_filename == "rnode_firmware_latest.hex":
+                        return [flasher, "-P", args.port, "-p", "m1284p", "-c", "arduino", "-b", "115200", "-U", "flash:w:update/"+fw_filename+":i"]
+                    elif fw_filename == "rnode_firmware_latest_m2560.hex":
+                        return [flasher, "-P", args.port, "-p", "atmega2560", "-c", "wiring", "-D", "-b", "115200", "-U", "flash:w:update/"+fw_filename]
                 else:
                     RNS.log("")
                     RNS.log("You do not currently have the \""+flasher+"\" program installed on your system.")
@@ -1179,22 +1208,59 @@ def main():
             elif platform == ROM.PLATFORM_ESP32:
                 flasher = "./update/esptool.py" 
                 if which(flasher) is not None:
-                    return [
-                        flasher,
-                        "--chip", "esp32",
-                        "--port", args.port,
-                        "--baud", "921600",
-                        "--before", "default_reset",
-                        "--after", "hard_reset",
-                        "write_flash", "-z",
-                        "--flash_mode", "dio",
-                        "--flash_freq", "80m",
-                        "--flash_size", "4MB",
-                        "0xe000", "./update/rnode_firmware_latest_tbeam.boot_app0",
-                        "0x1000", "./update/rnode_firmware_latest_tbeam.bootloader",
-                        "0x10000", "./update/rnode_firmware_latest_tbeam.bin",
-                        "0x8000", "./update/rnode_firmware_latest_tbeam.partitions",
-                    ]
+                    if fw_filename == "rnode_firmware_latest_tbeam.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "4MB",
+                            "0xe000", "./update/rnode_firmware_latest_tbeam.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_tbeam.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_tbeam.bin",
+                            "0x8000", "./update/rnode_firmware_latest_tbeam.partitions",
+                        ]
+                    elif fw_filename == "rnode_firmware_latest_featheresp32.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "4MB",
+                            "0xe000", "./update/rnode_firmware_latest_featheresp32.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_featheresp32.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_featheresp32.bin",
+                            "0x8000", "./update/rnode_firmware_latest_featheresp32.partitions",
+                        ]
+                    elif fw_filename == "rnode_firmware_latest_esp32_generic.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "4MB",
+                            "0xe000", "./update/rnode_firmware_latest_esp32_generic.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_esp32_generic.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_esp32_generic.bin",
+                            "0x8000", "./update/rnode_firmware_latest_esp32_generic.partitions",
+                        ]
+                    else:
+                        RNS.log("No flasher available for this board, cannot install firmware.")
                 else:
                     RNS.log("")
                     RNS.log("You do not currently have the \""+flasher+"\" program installed on your system.")
