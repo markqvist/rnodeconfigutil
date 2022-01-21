@@ -137,6 +137,14 @@ class ROM():
     MODEL_A4       = 0xA4
     MODEL_A9       = 0xA9
 
+    PRODUCT_T32_20 = 0xB0
+    MODEL_B4       = 0xB3
+    MODEL_B9       = 0xB8
+
+    PRODUCT_T32_21 = 0xB1
+    MODEL_B4       = 0xB4
+    MODEL_B9       = 0xB9
+
     PRODUCT_TBEAM  = 0xE0
     MODEL_E4       = 0xE4
     MODEL_E9       = 0xE9
@@ -164,9 +172,11 @@ class ROM():
 
 mapped_product = ROM.PRODUCT_RNODE
 products = {
-    ROM.PRODUCT_RNODE: "RNode",
-    ROM.PRODUCT_HMBRW: "Hombrew RNode",
-    ROM.PRODUCT_TBEAM: "LilyGO T-Beam",
+    ROM.PRODUCT_RNODE:  "RNode",
+    ROM.PRODUCT_HMBRW:  "Hombrew RNode",
+    ROM.PRODUCT_TBEAM:  "LilyGO T-Beam",
+    ROM.PRODUCT_T32_20: "LilyGO LoRa32 v2.0",
+    ROM.PRODUCT_T32_21: "LilyGO LoRa32 v2.1",
 }
 
 platforms = {
@@ -183,6 +193,10 @@ mcus = {
 models = {
     0xA4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest.hex"],
     0xA9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest.hex"],
+    # 0xB3: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v20.zip"],
+    # 0xB8: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v20.zip"],
+    0xB4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v21.zip"],
+    0xB9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v21.zip"],
     0xE4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_tbeam.zip"],
     0xE9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_tbeam.zip"],
     0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)", None],
@@ -918,12 +932,14 @@ def main():
             print("[1] Original RNode")
             print("[2] Homebrew RNode")
             print("[3] LilyGO T-Beam")
+            print("[4] LilyGO LoRa32 v2.0")
+            print("[5] LilyGO LoRa32 v2.1")
             print("\n? ", end="")
 
             selected_product = None
             try:
                 c_dev = int(input())
-                if c_dev < 1 or c_dev > 3:
+                if c_dev < 1 or c_dev > 5:
                     raise ValueError()
                 elif c_dev == 1:
                     selected_product = ROM.PRODUCT_RNODE
@@ -943,6 +959,28 @@ def main():
                     print("")
                     print("---------------------------------------------------------------------------")
                     print("Important! Using RNode firmware on T-Beam devices should currently be")
+                    print("considered experimental. It is not intended for production or critical use.")
+                    print("The currently supplied firmware is provided AS-IS as a courtesey to those")
+                    print("who would like to experiment with it. If you want any degree of reliability,")
+                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("---------------------------------------------------------------------------")
+                    input()
+                elif c_dev == 4:
+                    selected_product = ROM.PRODUCT_T32_20
+                    print("")
+                    print("---------------------------------------------------------------------------")
+                    print("Important! Using RNode firmware on LoRa32 devices should currently be")
+                    print("considered experimental. It is not intended for production or critical use.")
+                    print("The currently supplied firmware is provided AS-IS as a courtesey to those")
+                    print("who would like to experiment with it. If you want any degree of reliability,")
+                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("---------------------------------------------------------------------------")
+                    input()
+                elif c_dev == 5:
+                    selected_product = ROM.PRODUCT_T32_21
+                    print("")
+                    print("---------------------------------------------------------------------------")
+                    print("Important! Using RNode firmware on LoRa32 devices should currently be")
                     print("considered experimental. It is not intended for production or critical use.")
                     print("The currently supplied firmware is provided AS-IS as a courtesey to those")
                     print("who would like to experiment with it. If you want any degree of reliability,")
@@ -1025,6 +1063,50 @@ def main():
                     print("That band does not exist, exiting now.")
                     exit()
 
+            elif selected_product == ROM.PRODUCT_T32_20:
+                selected_mcu = ROM.MCU_ESP32
+                print("\nWhat band is this LoRa32 for?\n")
+                print("[1] 433 MHz")
+                print("[2] 868 MHz")
+                print("[3] 915 MHz")
+                print("[4] 923 MHz")
+                print("\n? ", end="")
+                try:
+                    c_model = int(input())
+                    if c_model < 1 or c_model > 4:
+                        raise ValueError()
+                    elif c_model == 1:
+                        selected_model = ROM.MODEL_B3
+                        selected_platform = ROM.PLATFORM_ESP32
+                    elif c_model > 1:
+                        selected_model = ROM.MODEL_B8
+                        selected_platform = ROM.PLATFORM_ESP32
+                except Exception as e:
+                    print("That band does not exist, exiting now.")
+                    exit()
+
+            elif selected_product == ROM.PRODUCT_T32_21:
+                selected_mcu = ROM.MCU_ESP32
+                print("\nWhat band is this LoRa32 for?\n")
+                print("[1] 433 MHz")
+                print("[2] 868 MHz")
+                print("[3] 915 MHz")
+                print("[4] 923 MHz")
+                print("\n? ", end="")
+                try:
+                    c_model = int(input())
+                    if c_model < 1 or c_model > 4:
+                        raise ValueError()
+                    elif c_model == 1:
+                        selected_model = ROM.MODEL_B4
+                        selected_platform = ROM.PLATFORM_ESP32
+                    elif c_model > 1:
+                        selected_model = ROM.MODEL_B9
+                        selected_platform = ROM.PLATFORM_ESP32
+                except Exception as e:
+                    print("That band does not exist, exiting now.")
+                    exit()
+
             if selected_model != ROM.MODEL_FF:
                 fw_filename = models[selected_model][4]
             else:
@@ -1034,8 +1116,6 @@ def main():
                     elif selected_mcu == ROM.MCU_2560:
                         fw_filename = "rnode_firmware_latest_m2560.hex"
                 elif selected_platform == ROM.PLATFORM_ESP32:
-                    # This variant is not released yet
-                    #fw_filename = "rnode_firmware_latest_esp32_generic.zip"
                     fw_filename = None
                     print("\nWhat kind of ESP32 board is this?\n")
                     print("[1] Adafruit Feather ESP32 (HUZZAH32)")
