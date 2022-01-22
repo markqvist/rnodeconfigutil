@@ -97,6 +97,7 @@ class KISS():
     CMD_STAT_SNR    = 0x24
     CMD_BLINK       = 0x30
     CMD_RANDOM      = 0x40
+    CMD_BOARD       = 0x47
     CMD_PLATFORM    = 0x48
     CMD_MCU         = 0x49
     CMD_FW_VERSION  = 0x50
@@ -170,6 +171,14 @@ class ROM():
     INFO_LOCK_BYTE = 0x73
     CONF_OK_BYTE   = 0x73
 
+    BOARD_RNODE         = 0x31
+    BOARD_HMBRW         = 0x32
+    BOARD_TBEAM         = 0x33
+    BOARD_HUZZAH32      = 0x34
+    BOARD_GENERIC_ESP32 = 0x35
+    BOARD_LORA32_V2_0   = 0x36
+    BOARD_LORA32_V2_1   = 0x37
+
 mapped_product = ROM.PRODUCT_RNODE
 products = {
     ROM.PRODUCT_RNODE:  "RNode",
@@ -233,6 +242,7 @@ class RNode():
 
         self.provisioned = None
         self.product = None
+        self.board = None
         self.model = None
         self.hw_rev = None
         self.made = None
@@ -359,6 +369,9 @@ class RNode():
                                     self.minor_version = command_buffer[1]
                                     self.updateVersion()
 
+                        elif (command == KISS.CMD_BOARD):
+                            self.board = byte
+
                         elif (command == KISS.CMD_PLATFORM):
                             self.platform = byte
 
@@ -454,7 +467,7 @@ class RNode():
         self.version = str(self.major_version)+"."+minstr
 
     def detect(self):
-        kiss_command = bytes([KISS.FEND, KISS.CMD_DETECT, KISS.DETECT_REQ, KISS.FEND, KISS.CMD_FW_VERSION, 0x00, KISS.FEND, KISS.CMD_PLATFORM, 0x00, KISS.FEND, KISS.CMD_MCU, 0x00, KISS.FEND])
+        kiss_command = bytes([KISS.FEND, KISS.CMD_DETECT, KISS.DETECT_REQ, KISS.FEND, KISS.CMD_FW_VERSION, 0x00, KISS.FEND, KISS.CMD_PLATFORM, 0x00, KISS.FEND, KISS.CMD_MCU, 0x00, KISS.FEND, KISS.CMD_BOARD, 0x00, KISS.FEND])
         written = self.serial.write(kiss_command)
         if written != len(kiss_command):
             raise IOError("An IO error occurred while detecting hardware for "+self(str))
@@ -1461,9 +1474,15 @@ def main():
                         elif rnode.mcu == ROM.MCU_2560:
                             fw_filename = "rnode_firmware_latest_m2560.hex"
                     elif rnode.platform == ROM.PLATFORM_ESP32:
-                        # This variant is not released yet
-                        #fw_filename = "rnode_firmware_latest_esp32.zip"
-                        fw_filename = None
+                        if rnode.board == ROM.BOARD_HUZZAH32:
+                            fw_filename = "rnode_firmware_latest_featheresp32.zip"
+                        elif rnode.board == ROM.BOARD_GENERIC_ESP32:
+                            fw_filename = "rnode_firmware_latest_esp32_generic.zip"
+                        else:
+                            fw_filename = None
+                            if args.update:
+                                RNS.log("ERROR: No firmware found for this board. Cannot update.")
+                                exit()
 
             if args.update:
                 rnode.disconnect()
@@ -1578,9 +1597,14 @@ def main():
                         else:
                             sigstring = "Genuine board, vendor is "+rnode.vendor
 
+                    if rnode.board != None:
+                        board_string = ":"+bytes([rnode.board]).hex()
+                    else:
+                        board_string = ""
+                        
                     RNS.log("")
                     RNS.log("Device info:")
-                    RNS.log("\tProduct            : "+products[rnode.product]+" "+models[rnode.model][3]+" ("+bytes([rnode.product]).hex()+":"+bytes([rnode.model]).hex()+")")
+                    RNS.log("\tProduct            : "+products[rnode.product]+" "+models[rnode.model][3]+" ("+bytes([rnode.product]).hex()+":"+bytes([rnode.model]).hex()+board_string+")")
                     RNS.log("\tDevice signature   : "+sigstring)
                     RNS.log("\tFirmware version   : "+rnode.version)
                     RNS.log("\tHardware revision  : "+str(int(rnode.hw_rev)))
