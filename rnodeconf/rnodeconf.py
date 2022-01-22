@@ -138,8 +138,8 @@ class ROM():
     MODEL_A9       = 0xA9
 
     PRODUCT_T32_20 = 0xB0
-    MODEL_B4       = 0xB3
-    MODEL_B9       = 0xB8
+    MODEL_B3       = 0xB3
+    MODEL_B8       = 0xB8
 
     PRODUCT_T32_21 = 0xB1
     MODEL_B4       = 0xB4
@@ -1304,6 +1304,23 @@ def main():
                             "0x1000", "./update/rnode_firmware_latest_tbeam.bootloader",
                             "0x10000", "./update/rnode_firmware_latest_tbeam.bin",
                             "0x8000", "./update/rnode_firmware_latest_tbeam.partitions",
+                        ]
+                    elif fw_filename == "rnode_firmware_latest_lora32v21.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "4MB",
+                            "0xe000", "./update/rnode_firmware_latest_lora32v21.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_lora32v21.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_lora32v21.bin",
+                            "0x8000", "./update/rnode_firmware_latest_lora32v21.partitions",
                         ]
                     elif fw_filename == "rnode_firmware_latest_featheresp32.zip":
                         return [

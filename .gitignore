@@ -8,6 +8,7 @@ update/*.hex
 update/*.zip
 update/*.bin
 update/*_tbeam*
+update/rnode_firmware_latest_*
 update/esptool.py
 eeprom/*.eeprom
 bootstrap
