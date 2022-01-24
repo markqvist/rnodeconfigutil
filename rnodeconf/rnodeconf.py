@@ -34,7 +34,7 @@ import math
 from urllib.request import urlretrieve
 from importlib import util
 
-program_version = "1.1.7"
+program_version = "1.1.8"
 eth_addr = "0x81F7B979fEa6134bA9FD5c701b3501A2e61E897a"
 btc_addr = "3CPmacGm34qYvR6XWLVEJmi2aNe3PZqUuq"
 
@@ -202,8 +202,8 @@ mcus = {
 models = {
     0xA4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest.hex"],
     0xA9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest.hex"],
-    # 0xB3: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v20.zip"],
-    # 0xB8: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v20.zip"],
+    0xB3: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v20.zip"],
+    0xB8: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v20.zip"],
     0xB4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v21.zip"],
     0xB9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v21.zip"],
     0xE4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_tbeam.zip"],
@@ -1318,6 +1318,23 @@ def main():
                             "0x10000", "./update/rnode_firmware_latest_tbeam.bin",
                             "0x8000", "./update/rnode_firmware_latest_tbeam.partitions",
                         ]
+                    elif fw_filename == "rnode_firmware_latest_lora32v20.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "4MB",
+                            "0xe000", "./update/rnode_firmware_latest_lora32v20.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_lora32v20.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_lora32v20.bin",
+                            "0x8000", "./update/rnode_firmware_latest_lora32v20.partitions",
+                        ]
                     elif fw_filename == "rnode_firmware_latest_lora32v21.zip":
                         return [
                             flasher,
@@ -1601,7 +1618,7 @@ def main():
                         board_string = ":"+bytes([rnode.board]).hex()
                     else:
                         board_string = ""
-                        
+
                     RNS.log("")
                     RNS.log("Device info:")
                     RNS.log("\tProduct            : "+products[rnode.product]+" "+models[rnode.model][3]+" ("+bytes([rnode.product]).hex()+":"+bytes([rnode.model]).hex()+board_string+")")
