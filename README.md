@@ -2,7 +2,9 @@
 
 ## Introduction
 
-Configure, update, flash, backup and install your [RNode](https://unsigned.io/projects/rnode/) (homebrew or official) with this handy utility. RNode is a flexible LoRa-based transceiver, and this tool allows you to install and configure RNodes built on a variety of different platforms and boards. With this tool you can configure and update existing RNodes, or make your own RNodes from supported boards and modules.
+Configure, update, flash, backup and install your [RNode](https://unsigned.io/projects/rnode/) (homebrew or official) with this handy utility.
+
+RNode is a flexible LoRa-based transceiver, and this tool allows you to install and configure RNodes built on a variety of different platforms and boards. With this tool you can configure and update existing RNodes, or make your own RNodes from supported boards and modules.
 
 Currently the RNode Configuration Utility supports:
 
