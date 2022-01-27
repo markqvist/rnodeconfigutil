@@ -2,7 +2,20 @@
 
 ## Introduction
 
-Configure, flash, backup and upgrade your [RNode](https://unsigned.io/projects/rnode/) with this handy utility. The only required option is the serial port the device is attached to. To show basic device info, use the -i option.
+Configure, update, flash, backup and install your [RNode](https://unsigned.io/projects/rnode/) (homebrew or official) with this handy utility. RNode is a flexible LoRa-based transceiver, and this tool allows you to install and configure RNodes built on a variety of different platforms and boards. With this tool you can configure and update existing RNodes, or make your own RNodes from supported boards and modules.
+
+Currently the RNode Configuration Utility supports:
+
+- The original RNode from [unsigned.io](https://unsigned.io/)
+- Homebrew RNodes based on ATmega1284p boards
+- Homebrew RNodes based on ATmega2560 boards
+- Homebrew RNodes based on Adafruit Feather ESP32 boards
+- Homebrew RNodes based on generic ESP32 boards
+- LilyGO T-Beam v1.1 devices
+- LilyGO LoRa32 v2.0 devices
+- LilyGO LoRa32 v2.1 devices
+
+You can use the included autoinstaller to automatically install and provision the RNode firmware on any supported board.
 
 RNode can operate in two modes, host-controlled (default) and TNC mode:
 
@@ -13,37 +26,31 @@ RNode can operate in two modes, host-controlled (default) and TNC mode:
 For a complete description of RNodes capabilities, documentation and more, please refer to the [RNode repository](https://github.com/markqvist/RNode_Firmware).
 
 ```
-usage: rnodeconf.py [-h] [-i] [-T] [-N] [-b] [-d] [-f] [-r] [-u] [-k] [-p]
-                    [--model model] [--hwrev revision] [--freq Hz] [--bw Hz]
-                    [--txp dBm] [--sf factor] [--cr rate]
-                    [port]
+usage: rnodeconf [-h] [-i] [-a] [-u] [--nocheck] [-N] [-T] [--freq Hz] [--bw Hz] [--txp dBm] [--sf factor] [--cr rate] [-b] [-d] [--eepromwipe] [--version]
+                 [port]
 
-RNode Configuration and firmware utility. This program allows you to change
-various settings and startup modes of RNode. It can also flash and update the
-firmware, and manage device EEPROM.
+RNode Configuration and firmware utility. This program allows you to change various settings and startup modes of RNode. It can also install, flash and
+update the firmware on supported devices.
 
 positional arguments:
-  port              serial port where RNode is attached
+  port               serial port where RNode is attached
 
-optional arguments:
-  -h, --help        show this help message and exit
-  -i, --info        Show device info
-  -T, --tnc         Switch device to TNC mode
-  -N, --normal      Switch device to normal mode
-  -b, --backup      Backup EEPROM to file
-  -d, --dump        Dump EEPROM to console
-  -f, --flash       Flash firmware and bootstrap EEPROM
-  -r, --rom         Bootstrap EEPROM without flashing firmware
-  -u, --update      Update firmware
-  -k, --key         Generate a new signing key and exit
-  -p, --public      Display public part of signing key
-  --model model     Model code for EEPROM bootstrap
-  --hwrev revision  Hardware revision EEPROM bootstrap
-  --freq Hz         Frequency in Hz for TNC mode
-  --bw Hz           Bandwidth in Hz for TNC mode
-  --txp dBm         TX power in dBm for TNC mode
-  --sf factor       Spreading factor for TNC mode
-  --cr rate         Coding rate for TNC mode
+options:                                                                                                                                                         -h, --help         show this help message and exit
+  -i, --info         Show device info
+  -a, --autoinstall  Automatic installation on various supported devices
+  -u, --update       Update firmware to the latest version
+  --nocheck          Don't check for firmware updates online, use existing local files if possible
+  -N, --normal       Switch device to normal mode
+  -T, --tnc          Switch device to TNC mode
+  --freq Hz          Frequency in Hz for TNC mode
+  --bw Hz            Bandwidth in Hz for TNC mode
+  --txp dBm          TX power in dBm for TNC mode
+  --sf factor        Spreading factor for TNC mode (7 - 12)
+  --cr rate          Coding rate for TNC mode (5 - 8)
+  -b, --backup       Backup EEPROM to file
+  -d, --dump         Dump EEPROM to console
+  --eepromwipe       Unlock and wipe EEPROM
+  --version          Print program version and exit
 ```
 
 ## Installation
