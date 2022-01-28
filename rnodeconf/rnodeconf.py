@@ -750,6 +750,19 @@ class RNode():
         else:
             raise IOError("Got invalid response while detecting device")
 
+firmware_version_url = "https://unsigned.io/firmware/latest/?variant="
+def download_firmware(fw_filename):
+    try:
+        urlretrieve(firmware_update_url+fw_filename, "update/"+fw_filename)
+        try:
+            urlretrieve(firmware_version_url+fw_filename, "update/"+fw_filename+".version")
+        except Exception as e:
+            pass
+    except Exception as e:
+        RNS.log("Could not download required firmware file. The contained exception was:")
+        RNS.log(str(e))
+        exit()
+
 def rnode_open_serial(port):
     import serial
     return serial.Serial(
@@ -1188,7 +1201,7 @@ def main():
             try:
                 RNS.log("Downloading latest frimware from GitHub...")
                 os.makedirs("./update", exist_ok=True)
-                urlretrieve(firmware_update_url+fw_filename, "update/"+fw_filename)
+                download_firmware(fw_filename)
                 RNS.log("Firmware download completed")
             except Exception as e:
                 RNS.log("Could not download firmware package")
@@ -1509,7 +1522,7 @@ def main():
                     try:
                         RNS.log("Downloading latest firmware from GitHub...")
                         os.makedirs("./update", exist_ok=True)
-                        urlretrieve(firmware_update_url+fw_filename, "update/"+fw_filename)
+                        download_firmware(fw_filename)
                         RNS.log("Firmware download completed")
                         if fw_filename.endswith(".zip"):
                             RNS.log("Extracting firmware...")
