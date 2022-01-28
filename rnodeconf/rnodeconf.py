@@ -37,6 +37,7 @@ from importlib import util
 program_version = "1.1.9"
 eth_addr = "0x81F7B979fEa6134bA9FD5c701b3501A2e61E897a"
 btc_addr = "3CPmacGm34qYvR6XWLVEJmi2aNe3PZqUuq"
+xmr_addr = "87HcDx6jRSkMQ9nPRd5K9hGGpZLn2s7vWETjMaVM5KfV4TD36NcYa8J8WSxhTSvBzzFpqDwp2fg5GX2moZ7VAP9QMZCZGET"
 
 rnode = None
 rnode_serial = None
@@ -841,6 +842,7 @@ def main():
         def print_donation_block():
             print("  Ethereum : "+eth_addr)
             print("  Bitcoin  : "+btc_addr)
+            print("  Monero   : "+xmr_addr)
             print("  Ko-Fi    : https://ko-fi.com/markqvist")
             print("")
             print("  Info     : https://unsigned.io/")
