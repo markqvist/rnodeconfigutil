@@ -5,6 +5,7 @@ firmware/*.counter
 firmware/*_latest*
 firmware/device_db
 update/*.hex
+update/*.version
 update/*.zip
 update/*.bin
 update/*_tbeam*
