@@ -63,7 +63,8 @@ update the firmware on supported devices.
 positional arguments:
   port               serial port where RNode is attached
 
-options:                                                                                                                                                         -h, --help         show this help message and exit
+options:
+  -h, --help         show this help message and exit
   -i, --info         Show device info
   -a, --autoinstall  Automatic installation on various supported devices
   -u, --update       Update firmware to the latest version
