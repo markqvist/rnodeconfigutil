@@ -216,8 +216,9 @@ squashvw = False
 
 class RNode():
     def __init__(self, serial_instance):
-        self.serial = serial_instance
-        self.timeout     = 100
+        self.serial          = serial_instance
+        self.time_since_last = 0
+        self.timeout         = 100
 
         self.r_frequency = None
         self.r_bandwidth = None
@@ -441,8 +442,8 @@ class RNode():
                                 self.detected = False
                         
                 else:
-                    time_since_last = int(time.time()*1000) - last_read_ms
-                    if len(data_buffer) > 0 and time_since_last > self.timeout:
+                    self.time_since_last = int(time.time()*1000) - last_read_ms
+                    if len(data_buffer) > 0 and self.time_since_last > self.timeout:
                         RNS.log(str(self)+" serial read timeout")
                         data_buffer = b""
                         in_frame = False
@@ -574,7 +575,10 @@ class RNode():
         if written != len(kiss_command):
             raise IOError("An IO error occurred while configuring radio state")
 
-        sleep(0.2)
+        while self.time_since_last < self.timeout and self.eeprom == None:
+            # Wait for EEPROM to download; just hoping it finishes in 200 ms
+            # doesn't work on busy systems.
+            sleep(0.2)
         if self.eeprom == None:
             RNS.log("Could not download EEPROM from device. Is a valid firmware installed?")
             exit()
