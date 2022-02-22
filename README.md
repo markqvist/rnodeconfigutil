@@ -19,6 +19,32 @@ Currently the RNode Configuration Utility supports:
 
 You can use the included autoinstaller to automatically install and provision the RNode firmware on any supported board.
 
+## Installation
+
+The easiest way to install the configuration utility is with pip:
+
+```sh
+# If you don't already have pip installed
+sudo apt install python3-pip
+
+# Install rnodeconf with pip
+pip3 install rnodeconf
+
+# Run rnodeconf
+rnodeconf --help
+```
+
+**Please Note**: If this is the very first time you use pip to install a program on your system, you might need to reboot your system for your program to become available. If you get a __command not found__ error or similar when running the program, reboot your system and try again. If this still doesn't work, you will need to add the pip install directory to your PATH variable. The best way to do this is to edit the ".profile" file in your home directory and add the following lines at the bottom of the file:
+
+```sh
+# Include locally installed programs in path
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+```
+
+## Usage Overview
+
 RNode can operate in two modes, host-controlled (default) and TNC mode:
 
 - When RNode is in host-controlled mode, it will stay in standby when powered on, until the host specifies frequency, bandwidth, transmit power and other required parameters. This mode can be enabled by using the -N option of this utility.
@@ -37,7 +63,8 @@ update the firmware on supported devices.
 positional arguments:
   port               serial port where RNode is attached
 
-options:                                                                                                                                                         -h, --help         show this help message and exit
+options:
+  -h, --help         show this help message and exit
   -i, --info         Show device info
   -a, --autoinstall  Automatic installation on various supported devices
   -u, --update       Update firmware to the latest version
@@ -55,65 +82,7 @@ options:                                                                        
   --version          Print program version and exit
 ```
 
-## Installation
-
-The easiest way to install the configuration utility is with pip:
-
-```sh
-# If you don't already have pip installed
-sudo apt install python3-pip
-
-# Install rnodeconf with pip
-pip3 install rnodeconf
-
-# Run rnodeconf
-rnodeconf --help
-```
-
-On some operating systems, programs installed by pip cannot be run simply by typing their name. If you get a __command not found__ error, you will have to add the pip install directory to your PATH variable. The best way to do this is to edit the ".profile" file in your home directory and add the following lines at the bottom of the file:
-
-```sh
-# Include locally installed programs in path
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-```
-
-If you want to use the utility for firmware updating or flashing, you will also need avrdude:
-
-```sh
-sudo apt install avrdude
-```
-
-You can also clone or download this repository, place it wherever you'd like and run rnodeconf from there:
-
-```sh
-# Clone repository
-git clone https://github.com/markqvist/rnodeconfigutil.git
-
-# Move into folder
-cd rnodeconfigutil
-
-# Set executable permission on rnodeconf
-chmod a+x rnodeconf/rnodeconf.py
-
-# Symlink executable to main directory
-ln -s rnodeconf/rnodeconf.py rnodeconfig
-
-# Run rnodeconf
-./rnodeconfig --help
-```
-
-## Dependencies
-
-The config utility requires Python 3, pyserial and cryptography.io. To install:
-
-```sh
-# Install dependencies for rnodeconf
-sudo pip3 install pyserial cryptography
-```
-
-## Examples
+## Command Examples
 
 ### Show device info
 
@@ -122,12 +91,21 @@ Print info like serial number, hardware revision, model and firmware version.
 ```sh
 rnodeconf /dev/ttyUSB0 -i
 ```
+
 ### Update the firmware
 
 Grab the latest precompiled firmware from the RNode Firmware repository and flash it to the device.
 
 ```sh
 rnodeconf /dev/ttyUSB0 -u
+```
+
+### Start the autoinstaller
+
+Start the autoinstallation guide for turning a compatible device into an RNode.
+
+```sh
+rnodeconf --autoinstall
 ```
 
 ### Set RNode to TNC mode
