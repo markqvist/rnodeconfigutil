@@ -21,6 +21,6 @@ setuptools.setup(
     entry_points= {
         'console_scripts': ['rnodeconf=rnodeconf:main']
     },
-    install_requires=['pyserial', 'cryptography'],
-    python_requires='>=3.5',
+    install_requires=['pyserial>=3.5', 'cryptography'],
+    python_requires='>=3.6',
 )
