@@ -34,7 +34,7 @@ import math
 from urllib.request import urlretrieve
 from importlib import util
 
-program_version = "1.1.9"
+program_version = "1.2.0"
 eth_addr = "0x81F7B979fEa6134bA9FD5c701b3501A2e61E897a"
 btc_addr = "3CPmacGm34qYvR6XWLVEJmi2aNe3PZqUuq"
 xmr_addr = "87HcDx6jRSkMQ9nPRd5K9hGGpZLn2s7vWETjMaVM5KfV4TD36NcYa8J8WSxhTSvBzzFpqDwp2fg5GX2moZ7VAP9QMZCZGET"
