@@ -574,7 +574,7 @@ class RNode():
         if written != len(kiss_command):
             raise IOError("An IO error occurred while configuring radio state")
 
-        sleep(0.2)
+        sleep(0.6)
         if self.eeprom == None:
             RNS.log("Could not download EEPROM from device. Is a valid firmware installed?")
             exit()
@@ -743,7 +743,7 @@ class RNode():
     def device_probe(self):
         sleep(2.5)
         self.detect()
-        sleep(0.1)
+        sleep(0.5)
         if self.detected == True:
             RNS.log("Device connected")
             RNS.log("Current firmware version: "+self.version)
@@ -1450,7 +1450,7 @@ def main():
                             args.rom = True
                             if args.platform == ROM.PLATFORM_ESP32:
                                 RNS.log("Waiting for ESP32 reset...")
-                                time.sleep(5)
+                                time.sleep(7)
                         else:
                             exit()
 
