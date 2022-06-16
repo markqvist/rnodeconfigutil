@@ -17,6 +17,7 @@ Currently the RNode Configuration Utility supports:
 - LilyGO T-Beam v1.1 devices
 - LilyGO LoRa32 v2.0 devices
 - LilyGO LoRa32 v2.1 devices
+- Heltec LoRa32 v2 devices
 
 You can use the included autoinstaller to automatically install and provision the RNode firmware on any supported board.
 
