@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# Copyright (c) 2018 Mark Qvist - unsigned.io/rnode
+# Copyright (c) 2018-2022 Mark Qvist - unsigned.io/rnode
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -138,6 +138,10 @@ class ROM():
     PRODUCT_RNODE  = 0x03
     MODEL_A4       = 0xA4
     MODEL_A9       = 0xA9
+    MODEL_A3       = 0xA3
+    MODEL_A8       = 0xA8
+    MODEL_A2       = 0xA2
+    MODEL_A7       = 0xA7
 
     PRODUCT_T32_20 = 0xB0
     MODEL_B3       = 0xB3
@@ -146,6 +150,10 @@ class ROM():
     PRODUCT_T32_21 = 0xB1
     MODEL_B4       = 0xB4
     MODEL_B9       = 0xB9
+
+    PRODUCT_H32_V2 = 0xC0
+    MODEL_C4       = 0xC4
+    MODEL_C9       = 0xC9
 
     PRODUCT_TBEAM  = 0xE0
     MODEL_E4       = 0xE4
@@ -187,6 +195,7 @@ products = {
     ROM.PRODUCT_TBEAM:  "LilyGO T-Beam",
     ROM.PRODUCT_T32_20: "LilyGO LoRa32 v2.0",
     ROM.PRODUCT_T32_21: "LilyGO LoRa32 v2.1",
+    ROM.PRODUCT_H32_V2: "Heltec LoRa32 v2",
 }
 
 platforms = {
@@ -203,10 +212,16 @@ mcus = {
 models = {
     0xA4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest.hex"],
     0xA9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest.hex"],
+    0xA2: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest_ng21.zip"],
+    0xA7: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest_ng21.zip"],
+    0xA3: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest_ng20.zip"],
+    0xA8: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest_ng20.zip"],
     0xB3: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v20.zip"],
     0xB8: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v20.zip"],
     0xB4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v21.zip"],
     0xB9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v21.zip"],
+    0xC4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_heltec32v2.zip"],
+    0xC9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_heltec32v2.zip"],
     0xE4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_tbeam.zip"],
     0xE9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_tbeam.zip"],
     0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)", None],
@@ -962,12 +977,13 @@ def main():
             print("[3] LilyGO T-Beam")
             print("[4] LilyGO LoRa32 v2.0")
             print("[5] LilyGO LoRa32 v2.1")
+            print("[6] Heltec LoRa32 v2")
             print("\n? ", end="")
 
             selected_product = None
             try:
                 c_dev = int(input())
-                if c_dev < 1 or c_dev > 5:
+                if c_dev < 1 or c_dev > 6:
                     raise ValueError()
                 elif c_dev == 1:
                     selected_product = ROM.PRODUCT_RNODE
@@ -978,8 +994,7 @@ def main():
                     print("Important! Using RNode firmware on homebrew devices should currently be")
                     print("considered experimental. It is not intended for production or critical use.")
                     print("The currently supplied firmware is provided AS-IS as a courtesey to those")
-                    print("who would like to experiment with it. If you want any degree of reliability,")
-                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("who would like to experiment with it. Hit enter to continue.")
                     print("---------------------------------------------------------------------------")
                     input()
                 elif c_dev == 3:
@@ -989,8 +1004,7 @@ def main():
                     print("Important! Using RNode firmware on T-Beam devices should currently be")
                     print("considered experimental. It is not intended for production or critical use.")
                     print("The currently supplied firmware is provided AS-IS as a courtesey to those")
-                    print("who would like to experiment with it. If you want any degree of reliability,")
-                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("who would like to experiment with it. Hit enter to continue.")
                     print("---------------------------------------------------------------------------")
                     input()
                 elif c_dev == 4:
@@ -1000,8 +1014,7 @@ def main():
                     print("Important! Using RNode firmware on LoRa32 devices should currently be")
                     print("considered experimental. It is not intended for production or critical use.")
                     print("The currently supplied firmware is provided AS-IS as a courtesey to those")
-                    print("who would like to experiment with it. If you want any degree of reliability,")
-                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("who would like to experiment with it. Hit enter to continue.")
                     print("---------------------------------------------------------------------------")
                     input()
                 elif c_dev == 5:
@@ -1011,8 +1024,17 @@ def main():
                     print("Important! Using RNode firmware on LoRa32 devices should currently be")
                     print("considered experimental. It is not intended for production or critical use.")
                     print("The currently supplied firmware is provided AS-IS as a courtesey to those")
-                    print("who would like to experiment with it. If you want any degree of reliability,")
-                    print("please use an actual RNode from unsigned.io. Hit enter to continue.")
+                    print("who would like to experiment with it. Hit enter to continue.")
+                    print("---------------------------------------------------------------------------")
+                    input()
+                elif c_dev == 6:
+                    selected_product = ROM.PRODUCT_H32_V2
+                    print("")
+                    print("---------------------------------------------------------------------------")
+                    print("Important! Using RNode firmware on Heltec devices should currently be")
+                    print("considered experimental. It is not intended for production or critical use.")
+                    print("The currently supplied firmware is provided AS-IS as a courtesey to those")
+                    print("who would like to experiment with it. Hit enter to continue.")
                     print("---------------------------------------------------------------------------")
                     input()
             except Exception as e:
@@ -1130,6 +1152,28 @@ def main():
                         selected_platform = ROM.PLATFORM_ESP32
                     elif c_model > 1:
                         selected_model = ROM.MODEL_B9
+                        selected_platform = ROM.PLATFORM_ESP32
+                except Exception as e:
+                    print("That band does not exist, exiting now.")
+                    exit()
+
+            elif selected_product == ROM.PRODUCT_H32_V2:
+                selected_mcu = ROM.MCU_ESP32
+                print("\nWhat band is this Heltec LoRa32 for?\n")
+                print("[1] 433 MHz")
+                print("[2] 868 MHz")
+                print("[3] 915 MHz")
+                print("[4] 923 MHz")
+                print("\n? ", end="")
+                try:
+                    c_model = int(input())
+                    if c_model < 1 or c_model > 4:
+                        raise ValueError()
+                    elif c_model == 1:
+                        selected_model = ROM.MODEL_C4
+                        selected_platform = ROM.PLATFORM_ESP32
+                    elif c_model > 1:
+                        selected_model = ROM.MODEL_C9
                         selected_platform = ROM.PLATFORM_ESP32
                 except Exception as e:
                     print("That band does not exist, exiting now.")
@@ -1367,6 +1411,23 @@ def main():
                             "0x10000", "./update/rnode_firmware_latest_lora32v21.bin",
                             "0x8000", "./update/rnode_firmware_latest_lora32v21.partitions",
                         ]
+                    elif fw_filename == "rnode_firmware_latest_heltec32v2.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "8MB",
+                            "0xe000", "./update/rnode_firmware_latest_heltec32v2.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_heltec32v2.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_heltec32v2.bin",
+                            "0x8000", "./update/rnode_firmware_latest_heltec32v2.partitions",
+                        ]
                     elif fw_filename == "rnode_firmware_latest_featheresp32.zip":
                         return [
                             flasher,
@@ -1457,6 +1518,7 @@ def main():
                     except Exception as e:
                         RNS.log("Error while flashing")
                         RNS.log(str(e))
+                        exit(1)
                 else:
                     RNS.log("Firmware file not found")
                     exit()
@@ -1517,6 +1579,10 @@ def main():
                                 exit()
 
             if args.update:
+                if not rnode.provisioned:
+                    RNS.log("Cannot update device firmware")
+                    exit(1)
+
                 rnode.disconnect()
                 from subprocess import call
 
