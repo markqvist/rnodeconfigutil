@@ -161,6 +161,7 @@ class ROM():
     
     PRODUCT_HMBRW  = 0xF0
     MODEL_FF       = 0xFF
+    MODEL_FE       = 0xFE
 
     ADDR_PRODUCT   = 0x00
     ADDR_MODEL     = 0x01
@@ -212,18 +213,19 @@ mcus = {
 models = {
     0xA4: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest.hex"],
     0xA9: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest.hex"],
-    0xA2: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest_ng21.zip"],
+    0xA2: [410000000, 525000000, 17, "410 - 525 MHz", "rnode_firmware_latest_ng21.zip"],
     0xA7: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest_ng21.zip"],
-    0xA3: [410000000, 525000000, 14, "410 - 525 MHz", "rnode_firmware_latest_ng20.zip"],
+    0xA3: [410000000, 525000000, 17, "410 - 525 MHz", "rnode_firmware_latest_ng20.zip"],
     0xA8: [820000000, 1020000000, 17, "820 - 1020 MHz", "rnode_firmware_latest_ng20.zip"],
-    0xB3: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v20.zip"],
+    0xB3: [420000000, 520000000, 17, "420 - 520 MHz", "rnode_firmware_latest_lora32v20.zip"],
     0xB8: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v20.zip"],
-    0xB4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_lora32v21.zip"],
+    0xB4: [420000000, 520000000, 17, "420 - 520 MHz", "rnode_firmware_latest_lora32v21.zip"],
     0xB9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_lora32v21.zip"],
-    0xC4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_heltec32v2.zip"],
+    0xC4: [420000000, 520000000, 17, "420 - 520 MHz", "rnode_firmware_latest_heltec32v2.zip"],
     0xC9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_heltec32v2.zip"],
-    0xE4: [420000000, 520000000, 14, "420 - 520 MHz", "rnode_firmware_latest_tbeam.zip"],
+    0xE4: [420000000, 520000000, 17, "420 - 520 MHz", "rnode_firmware_latest_tbeam.zip"],
     0xE9: [850000000, 950000000, 17, "850 - 950 MHz", "rnode_firmware_latest_tbeam.zip"],
+    0xFE: [100000000, 1100000000, 17, "(Band capabilities unknown)", None],
     0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)", None],
 }
 
@@ -559,6 +561,9 @@ class RNode():
         if written != len(kiss_command):
             raise IOError("An IO error occurred while configuring device mode")
 
+        if self.platform == ROM.PLATFORM_ESP32:
+            self.hard_reset()
+
     def wipe_eeprom(self):
         kiss_command = bytes([KISS.FEND, KISS.CMD_ROM_WIPE, 0xf8, KISS.FEND])
         written = self.serial.write(kiss_command)
@@ -758,7 +763,7 @@ class RNode():
     def device_probe(self):
         sleep(2.5)
         self.detect()
-        sleep(0.5)
+        sleep(0.75)
         if self.detected == True:
             RNS.log("Device connected")
             RNS.log("Current firmware version: "+self.version)
@@ -972,7 +977,7 @@ def main():
                 print("\nIt looks like this is a fresh device with no RNode firmware.")
                 
             print("What kind of device is this?\n")
-            print("[1] Original RNode")
+            print("[1] RNode from Unsigned.io")
             print("[2] Homebrew RNode")
             print("[3] LilyGO T-Beam")
             print("[4] LilyGO LoRa32 v2.0")
@@ -1046,7 +1051,6 @@ def main():
             selected_mcu = None
 
             if selected_product == ROM.PRODUCT_HMBRW:
-                selected_model = ROM.MODEL_FF
                 print("\nWhat kind of microcontroller is your board based on?\n")
                 print("[1] AVR ATmega1284P")
                 print("[2] AVR ATmega2560")
@@ -1071,15 +1075,37 @@ def main():
                     print("That MCU type does not exist, exiting now.")
                     exit()
 
+                print("\nWhat transceiver module does your board use?\n")
+                print("[1] SX1276/SX1278 with antenna port on PA_BOOST pin")
+                print("[2] SX1276/SX1278 with antenna port on RFO pin")
+                print("\n? ", end="")
+                try:
+                    c_trxm = int(input())
+                    if c_trxm < 1 or c_trxm > 3:
+                        raise ValueError()
+                    elif c_trxm == 1:
+                        selected_model = ROM.MODEL_FE
+                    elif c_trxm == 2:
+                        selected_model = ROM.MODEL_FF
+
+                except Exception as e:
+                    print("That transceiver type does not exist, exiting now.")
+                    exit()
+
+
             elif selected_product == ROM.PRODUCT_RNODE:
                 selected_mcu = ROM.MCU_1284P
                 print("\nWhat model is this RNode?\n")
-                print("[1] RNode 410 - 525 MHz")
-                print("[2] RNode 820 - 1020 MHz")
+                print("[1] Original v1.x RNode, 410 - 525 MHz")
+                print("[2] Original v1.x RNode, 820 - 1020 MHz")
+                print("[3] Prototype v2 RNode, 410 - 525 MHz")
+                print("[4] Prototype v2 RNode, 820 - 1020 MHz")
+                print("[5] RNode v2.x, 410 - 525 MHz")
+                print("[6] RNode v2.x, 820 - 1020 MHz")
                 print("\n? ", end="")
                 try:
                     c_model = int(input())
-                    if c_model < 1 or c_model > 2:
+                    if c_model < 1 or c_model > 6:
                         raise ValueError()
                     elif c_model == 1:
                         selected_model = ROM.MODEL_A4
@@ -1087,6 +1113,18 @@ def main():
                     elif c_model == 2:
                         selected_model = ROM.MODEL_A9
                         selected_platform = ROM.PLATFORM_AVR
+                    elif c_model == 3:
+                        selected_model = ROM.MODEL_A3
+                        selected_platform = ROM.PLATFORM_ESP32
+                    elif c_model == 4:
+                        selected_model = ROM.MODEL_A8
+                        selected_platform = ROM.PLATFORM_ESP32
+                    elif c_model == 5:
+                        selected_model = ROM.MODEL_A2
+                        selected_platform = ROM.PLATFORM_ESP32
+                    elif c_model == 6:
+                        selected_model = ROM.MODEL_A7
+                        selected_platform = ROM.PLATFORM_ESP32
                 except Exception as e:
                     print("That model does not exist, exiting now.")
                     exit()
@@ -1179,14 +1217,16 @@ def main():
                     print("That band does not exist, exiting now.")
                     exit()
 
-            if selected_model != ROM.MODEL_FF:
+            if selected_model != ROM.MODEL_FF and selected_model != ROM.MODEL_FE:
                 fw_filename = models[selected_model][4]
+
             else:
                 if selected_platform == ROM.PLATFORM_AVR:
                     if selected_mcu == ROM.MCU_1284P:
                         fw_filename = "rnode_firmware_latest.hex"
                     elif selected_mcu == ROM.MCU_2560:
                         fw_filename = "rnode_firmware_latest_m2560.hex"
+                
                 elif selected_platform == ROM.PLATFORM_ESP32:
                     fw_filename = None
                     print("\nWhat kind of ESP32 board is this?\n")
@@ -1462,6 +1502,40 @@ def main():
                             "0x10000", "./update/rnode_firmware_latest_esp32_generic.bin",
                             "0x8000", "./update/rnode_firmware_latest_esp32_generic.partitions",
                         ]
+                    elif fw_filename == "rnode_firmware_latest_ng20.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "4MB",
+                            "0xe000", "./update/rnode_firmware_latest_ng20.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_ng20.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_ng20.bin",
+                            "0x8000", "./update/rnode_firmware_latest_ng20.partitions",
+                        ]
+                    elif fw_filename == "rnode_firmware_latest_ng21.zip":
+                        return [
+                            flasher,
+                            "--chip", "esp32",
+                            "--port", args.port,
+                            "--baud", "921600",
+                            "--before", "default_reset",
+                            "--after", "hard_reset",
+                            "write_flash", "-z",
+                            "--flash_mode", "dio",
+                            "--flash_freq", "80m",
+                            "--flash_size", "4MB",
+                            "0xe000", "./update/rnode_firmware_latest_ng21.boot_app0",
+                            "0x1000", "./update/rnode_firmware_latest_ng21.bootloader",
+                            "0x10000", "./update/rnode_firmware_latest_ng21.bin",
+                            "0x8000", "./update/rnode_firmware_latest_ng21.partitions",
+                        ]
                     else:
                         RNS.log("No flasher available for this board, cannot install firmware.")
                 else:
@@ -1505,7 +1579,8 @@ def main():
 
                         RNS.log("Flashing RNode firmware to device on "+args.port)
                         from subprocess import call
-                        flash_status = call(get_flasher_call(args.platform, fw_filename))
+                        rc = get_flasher_call(args.platform, fw_filename)
+                        flash_status = call(rc)
                         if flash_status == 0:
                             RNS.log("Done flashing")
                             args.rom = True
