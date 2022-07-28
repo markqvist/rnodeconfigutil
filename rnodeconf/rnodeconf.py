@@ -931,12 +931,11 @@ def main():
                         selected_port = port
 
                 if selected_port == None:
-                    print("Could not find specified port "+str(args.port)+", exiting now")
-                    exit()
-
-                port_path = selected_port.device
-                port_product = selected_port.product
-                port_serialno = selected_port.serial_number
+                    port_path = args.port
+                else:
+                    port_path = selected_port.device
+                    port_product = selected_port.product
+                    port_serialno = selected_port.serial_number
 
                 print("\nUsing device on "+str(port_path))
 
@@ -1259,7 +1258,7 @@ def main():
             print("summary before proceeding. In the next step, the device will be flashed and")
             print("provisioned, so make that you are satisfied with your choices.\n")
 
-            print("Serial port     : "+str(selected_port.device))
+            print("Serial port     : "+str(port_path))
             print("Device type     : "+str(products[selected_product])+" "+str(models[selected_model][3]))
             print("Platform        : "+str(platforms[selected_platform]))
             print("Device MCU      : "+str(mcus[selected_mcu]))
@@ -1275,7 +1274,7 @@ def main():
                 exit()
 
             args.key = True
-            args.port = selected_port.device
+            args.port = port_path
             args.platform = selected_platform
             args.hwrev = 1
             mapped_model = selected_model
