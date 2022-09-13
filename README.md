@@ -36,6 +36,8 @@ pip3 install rnodeconf
 rnodeconf --help
 ```
 
+On Arch Linux it is also possible to install using the `rnodeconf` package from the [AUR](https://aur.archlinux.org/packages/rnodeconf).
+
 **Please Note**: If this is the very first time you use pip to install a program on your system, you might need to reboot your system for your program to become available. If you get a __command not found__ error or similar when running the program, reboot your system and try again. If this still doesn't work, you will need to add the pip install directory to your PATH variable. The best way to do this is to edit the ".profile" file in your home directory and add the following lines at the bottom of the file:
 
 ```sh
