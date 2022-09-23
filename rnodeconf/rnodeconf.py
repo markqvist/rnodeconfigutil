@@ -229,6 +229,21 @@ models = {
     0xFF: [100000000, 1100000000, 14, "(Band capabilities unknown)", None],
 }
 
+fw_filenames = [
+    "rnode_firmware_latest.hex",
+    "rnode_firmware_latest_esp32_generic.zip",
+    "rnode_firmware_latest_featheresp32.zip",
+    "rnode_firmware_latest_heltec32v2.zip",
+    "rnode_firmware_latest_lora32v20.zip",
+    "rnode_firmware_latest_lora32v20_extled.zip",
+    "rnode_firmware_latest_lora32v21.zip",
+    "rnode_firmware_latest_lora32v21_extled.zip",
+    "rnode_firmware_latest_m2560.hex",
+    "rnode_firmware_latest_ng20.zip",
+    "rnode_firmware_latest_ng21.zip",
+    "rnode_firmware_latest_tbeam.zip",
+]
+
 squashvw = False
 
 class RNode():
@@ -782,7 +797,7 @@ def download_firmware(fw_filename):
     except Exception as e:
         RNS.log("Could not download required firmware file. The contained exception was:")
         RNS.log(str(e))
-        exit()
+        raise
 
 def rnode_open_serial(port):
     import serial
@@ -832,6 +847,8 @@ def main():
         parser.add_argument("-a", "--autoinstall", action="store_true", help="Automatic installation on various supported devices")
         parser.add_argument("-u", "--update", action="store_true", help="Update firmware to the latest version")
         parser.add_argument("--nocheck", action="store_true", help="Don't check for firmware updates online, use existing local files if possible")
+        parser.add_argument("--ignoredownload", action="store_true", help="Ignores download error and use existing local files if possible")
+        parser.add_argument("--download", action="store_true", help="Download all variants/models of the current firmware for offline use.")
         parser.add_argument("-N", "--normal", action="store_true", help="Switch device to normal mode")
         parser.add_argument("-T", "--tnc", action="store_true", help="Switch device to TNC mode")
 
@@ -871,6 +888,18 @@ def main():
         if args.version:
             print("rnodeconf "+program_version)
             exit(0)
+
+        if args.download:
+            try:
+                RNS.log("Downloading latest firmwares from GitHub...")
+                os.makedirs("./update", exist_ok=True)
+                for fw_filename in fw_filenames :
+                    download_firmware(fw_filename)
+                RNS.log("Firmware download completed")
+            except Exception as e:
+                RNS.log("Could not download firmware package")
+                RNS.log("The contained exception was: "+str(e))
+            exit()
 
         if args.public or args.key or args.flash or args.rom or args.autoinstall:
             from cryptography.hazmat.primitives import hashes
@@ -1282,16 +1311,22 @@ def main():
             args.update = False
             args.flash = True
 
-            # TODO: Download firmware file from github here
-            try:
-                RNS.log("Downloading latest frimware from GitHub...")
-                os.makedirs("./update", exist_ok=True)
-                download_firmware(fw_filename)
-                RNS.log("Firmware download completed")
-            except Exception as e:
-                RNS.log("Could not download firmware package")
-                RNS.log("The contained exception was: "+str(e))
-                exit()
+            if not args.nocheck:
+                # TODO: Download firmware file from github here
+                try:
+                    RNS.log("Downloading latest firmware from GitHub...")
+                    os.makedirs("./update", exist_ok=True)
+                    download_firmware(fw_filename)
+                    RNS.log("Firmware download completed")
+                except Exception as e:
+                    RNS.log("Could not download firmware package")
+                    RNS.log("The contained exception was: "+str(e))
+                    if not args.ignoredownload:
+                        exit()
+                    else:
+                        RNS.log("Try using local firmware file: "+"./update/"+fw_filename)
+            else:
+                RNS.log("Skipping online check, using local firmware file: "+"./update/"+fw_filename)
 
             rnode.disconnect()
 
