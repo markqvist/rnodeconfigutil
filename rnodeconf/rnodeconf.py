@@ -1312,7 +1312,6 @@ def main():
             args.flash = True
 
             if not args.nocheck:
-                # TODO: Download firmware file from github here
                 try:
                     RNS.log("Downloading latest firmware from GitHub...")
                     os.makedirs("./update", exist_ok=True)
@@ -1719,6 +1718,14 @@ def main():
 
                 if os.path.isfile("./update/"+fw_filename):
                     try:
+                        if fw_filename.endswith(".zip"):
+                            RNS.log("Extracting firmware...")
+                            unzip_status = call(get_flasher_call("unzip", fw_filename))
+                            if unzip_status == 0:
+                                RNS.log("Firmware extracted")
+                            else:
+                                RNS.log("Could not extract firmware. Trying to use already extracted firmware.")
+
                         args.info = False
                         RNS.log("Updating RNode firmware for device on "+args.port)
                         flash_status = call(get_flasher_call(rnode.platform, fw_filename))
