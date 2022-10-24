@@ -45,6 +45,7 @@ rnode_port = None
 rnode_baudrate = 115200
 known_keys = [["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100bf831ebd99f43b477caf1a094bec829389da40653e8f1f83fc14bf1b98a3e1cc70e759c213a43f71e5a47eb56a9ca487f241335b3e6ff7cdde0ee0a1c75c698574aeba0485726b6a9dfc046b4188e3520271ee8555a8f405cf21f81f2575771d0b0887adea5dd53c1f594f72c66b5f14904ffc2e72206a6698a490d51ba1105b0203010001"], ["unsigned.io", "30819f300d06092a864886f70d010101050003818d0030818902818100e5d46084e445595376bf7efd9c6ccf19d39abbc59afdb763207e4ff68b8d00ebffb63847aa2fe6dd10783d3ea63b55ac66f71ad885c20e223709f0d51ed5c6c0d0b093be9e1d165bb8a483a548b67a3f7a1e4580f50e75b306593fa6067ae259d3e297717bd7ff8c8f5b07f2bed89929a9a0321026cf3699524db98e2d18fb2d020300ff39"]]
 firmware_update_url = "https://github.com/markqvist/RNode_Firmware/raw/master/Release/"
+firmware_version_url = "https://unsigned.io/firmware/latest/?variant="
 fw_filename = None
 mapped_model = None
 
@@ -786,7 +787,6 @@ class RNode():
         else:
             raise IOError("Got invalid response while detecting device")
 
-firmware_version_url = "https://unsigned.io/firmware/latest/?variant="
 def download_firmware(fw_filename):
     try:
         urlretrieve(firmware_update_url+fw_filename, "update/"+fw_filename)
@@ -849,6 +849,7 @@ def main():
         parser.add_argument("--nocheck", action="store_true", help="Don't check for firmware updates online, use existing local files if possible")
         parser.add_argument("--ignoredownload", action="store_true", help="Ignores download error and use existing local files if possible")
         parser.add_argument("--download", action="store_true", help="Download all variants/models of the current firmware for offline use.")
+        parser.add_argument("--url", action="store", type=str, default=None, help="Defines an alternative firmware download URL")
         parser.add_argument("-N", "--normal", action="store_true", help="Switch device to normal mode")
         parser.add_argument("-T", "--tnc", action="store_true", help="Switch device to TNC mode")
 
@@ -889,16 +890,23 @@ def main():
             print("rnodeconf "+program_version)
             exit(0)
 
+        if args.url != None:
+            global firmware_update_url
+            firmware_update_url = args.url
+
         if args.download:
-            try:
-                RNS.log("Downloading latest firmwares from GitHub...")
-                os.makedirs("./update", exist_ok=True)
-                for fw_filename in fw_filenames :
+            RNS.log("Downloading all available latest firmwares from GitHub...")
+            os.makedirs("./update", exist_ok=True)
+            count_success = 0
+            for fw_filename in fw_filenames:
+                try:
+                    RNS.log("Downloading "+fw_filename+"...")
                     download_firmware(fw_filename)
-                RNS.log("Firmware download completed")
-            except Exception as e:
-                RNS.log("Could not download firmware package")
-                RNS.log("The contained exception was: "+str(e))
+                    count_success += 1
+                except Exception as e:
+                    RNS.log("Could not download firmware package")
+                    RNS.log("The contained exception was: "+str(e))
+            RNS.log("Firmware download completed: "+str(count_success)+"/"+str(len(fw_filenames)))
             exit()
 
         if args.public or args.key or args.flash or args.rom or args.autoinstall:
