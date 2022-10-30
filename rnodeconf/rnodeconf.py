@@ -949,10 +949,7 @@ def main():
                 exit()
 
             rnode = RNode(rnode_serial)
-            thread = threading.Thread(target=rnode.readLoop)
-            thread.setDaemon(True)
-            thread.start()
-
+            thread = threading.Thread(target=rnode.readLoop, daemon=True).start()
             try:
                 rnode.device_probe()
             except Exception as e:
@@ -1114,15 +1111,19 @@ def main():
                         selected_platform = ROM.PLATFORM_AVR
                     elif c_model == 3:
                         selected_model = ROM.MODEL_A3
+                        selected_mcu = ROM.MCU_ESP32
                         selected_platform = ROM.PLATFORM_ESP32
                     elif c_model == 4:
                         selected_model = ROM.MODEL_A8
+                        selected_mcu = ROM.MCU_ESP32
                         selected_platform = ROM.PLATFORM_ESP32
                     elif c_model == 5:
                         selected_model = ROM.MODEL_A2
+                        selected_mcu = ROM.MCU_ESP32
                         selected_platform = ROM.PLATFORM_ESP32
                     elif c_model == 6:
                         selected_model = ROM.MODEL_A7
+                        selected_mcu = ROM.MCU_ESP32
                         selected_platform = ROM.PLATFORM_ESP32
                 except Exception as e:
                     print("That model does not exist, exiting now.")
@@ -1607,9 +1608,7 @@ def main():
                 exit()
 
             rnode = RNode(rnode_serial)
-            thread = threading.Thread(target=rnode.readLoop)
-            thread.setDaemon(True)
-            thread.start()
+            thread = threading.Thread(target=rnode.readLoop, daemon=True).start()
 
             try:
                 rnode.device_probe()
@@ -1699,9 +1698,7 @@ def main():
                                 exit()
 
                             rnode = RNode(rnode_serial)
-                            thread = threading.Thread(target=rnode.readLoop)
-                            thread.setDaemon(True)
-                            thread.start()
+                            thread = threading.Thread(target=rnode.readLoop, daemon=True).start()
 
                             try:
                                 rnode.device_probe()
