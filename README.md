@@ -1,5 +1,16 @@
 # RNode Configuration Utility
 
+## Please beware!
+
+This rnodeconf program package is outdated! The rnodeconf utility has been moved into the rns package, and the rnodeconf program in this package will no longer be maintained.
+
+Please uninstall the rnodeconf package, and use rnodeconf from the rns package instead:
+
+```
+pip uninstall rnodeconf
+pip install rns --upgrade
+```
+
 ## Introduction
 
 Configure, update, flash, backup and install your [RNode](https://unsigned.io/projects/rnode/) (homebrew or official) with this handy utility.
@@ -29,22 +40,11 @@ The easiest way to install the configuration utility is with pip:
 # If you don't already have pip installed
 sudo apt install python3-pip
 
-# Install rnodeconf with pip
-pip3 install rnodeconf
+# Install rnodeconf included in the rns package with pip
+pip3 install rns
 
 # Run rnodeconf
 rnodeconf --help
-```
-
-On Arch Linux it is also possible to install using the `rnodeconf` package from the [AUR](https://aur.archlinux.org/packages/rnodeconf).
-
-**Please Note**: If this is the very first time you use pip to install a program on your system, you might need to reboot your system for your program to become available. If you get a __command not found__ error or similar when running the program, reboot your system and try again. If this still doesn't work, you will need to add the pip install directory to your PATH variable. The best way to do this is to edit the ".profile" file in your home directory and add the following lines at the bottom of the file:
-
-```sh
-# Include locally installed programs in path
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
 ```
 
 ## Usage Overview
