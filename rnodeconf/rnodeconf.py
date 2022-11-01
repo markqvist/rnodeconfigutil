@@ -34,7 +34,7 @@ import math
 from urllib.request import urlretrieve
 from importlib import util
 
-program_version = "1.3.0"
+program_version = "1.3.1"
 
 def main():
     print("")
@@ -42,7 +42,7 @@ def main():
     print("rns package, and the rnodeconf program in this package will no longer be maintained.")
     print("Please uninstall the rnodeconf package, and use rnodeconf from the rns package instead:")
     print("")
-    print("   pip uninstall rnodeconf")
+    print("   pip uninstall rnodeconf rns")
     print("")
     print("While installing this version of the rnodeconf package, RNS 0.3.18 should have been")
     print("installed automatically as well. If it did not, you can install it with:")

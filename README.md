@@ -7,7 +7,7 @@ This rnodeconf package is outdated! The rnodeconf utility has been moved into th
 Please uninstall the rnodeconf package, and use rnodeconf from the rns package instead:
 
 ```
-pip uninstall rnodeconf
+pip uninstall rnodeconf rns
 pip install rns --upgrade
 ```
 
