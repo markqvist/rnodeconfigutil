@@ -2,7 +2,7 @@
 
 ## Please beware!
 
-This rnodeconf program package is outdated! The rnodeconf utility has been moved into the rns package, and the rnodeconf program in this package will no longer be maintained.
+This rnodeconf package is outdated! The rnodeconf utility has been moved into the rns package, and the rnodeconf program in this package will no longer be maintained.
 
 Please uninstall the rnodeconf package, and use rnodeconf from the rns package instead:
 
@@ -10,6 +10,8 @@ Please uninstall the rnodeconf package, and use rnodeconf from the rns package i
 pip uninstall rnodeconf
 pip install rns --upgrade
 ```
+
+The updated rnodeconf source code can now be found directly in the [Reticulum Repository](https://github.com/markqvist/reticulum)
 
 ## Introduction
 
